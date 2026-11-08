@@ -353,7 +353,7 @@
       const playButton = root.querySelector('#fl-play');
       const playLabel = playButton.querySelector('span');
       const stepBars = [...root.querySelectorAll('.fl-step')];
-      const N = 32;
+      const N = 64;
       let step = 0;
       let timer = null;
       let cutoff = Number(cutoffInput.value);
@@ -412,11 +412,13 @@
         for (let y = 0; y < N; y++) {
           for (let x = 0; x < N; x++) {
             let v = 0.08 + 0.18 * (x / (N - 1));
-            if (x >= 4 && x <= 13 && y >= 5 && y <= 25) v = 0.78;
-            if (x >= 13 && x <= 20 && y >= 5 && y <= 9) v = 0.78;
-            if (x >= 13 && x <= 18 && y >= 14 && y <= 18) v = 0.78;
-            if (x >= 21 && y >= 19 && ((x + y) % 2 === 0)) v = 0.95;
-            if (x >= 22 && x <= 29 && y >= 3 && y <= 4) v = 1;
+            const normalizedX = x / N;
+            const normalizedY = y / N;
+            if (normalizedX >= 0.12 && normalizedX <= 0.42 && normalizedY >= 0.16 && normalizedY <= 0.80) v = 0.78;
+            if (normalizedX >= 0.40 && normalizedX <= 0.64 && normalizedY >= 0.16 && normalizedY <= 0.28) v = 0.78;
+            if (normalizedX >= 0.40 && normalizedX <= 0.58 && normalizedY >= 0.44 && normalizedY <= 0.56) v = 0.78;
+            if (normalizedX >= 0.68 && normalizedY >= 0.60 && ((Math.floor(x / 2) + Math.floor(y / 2)) % 2 === 0)) v = 0.95;
+            if (normalizedX >= 0.69 && normalizedX <= 0.92 && normalizedY >= 0.09 && normalizedY <= 0.13) v = 1;
             a[y * N + x] = v;
           }
         }

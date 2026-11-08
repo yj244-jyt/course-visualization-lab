@@ -6,7 +6,7 @@
   function createCard(item) {
     const link = document.createElement('a');
     link.className = 'visual-card';
-    link.href = item.path;
+    link.href = `${item.path}?v=3`;
 
     const preview = document.createElement('div');
     preview.className = 'visual-preview fourier-preview';
