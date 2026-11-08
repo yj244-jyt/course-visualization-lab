@@ -1,1819 +1,123 @@
 <!doctype html>
-<html lang="en" data-visualize-standalone>
+<html lang="zh-CN">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="referrer" content="no-referrer">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline' 'unsafe-eval' 'wasm-unsafe-eval' blob: data: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://esm.sh https://fonts.bunny.net https://fonts.googleapis.com https://fonts.gstatic.com https://unpkg.com https://persistent.oaistatic.com/plugins/visualize/; style-src 'unsafe-inline' blob: data: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://esm.sh https://fonts.bunny.net https://fonts.googleapis.com https://fonts.gstatic.com https://unpkg.com; img-src blob: data: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://esm.sh https://fonts.bunny.net https://fonts.googleapis.com https://fonts.gstatic.com https://unpkg.com; font-src blob: data: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://esm.sh https://fonts.bunny.net https://fonts.googleapis.com https://fonts.gstatic.com https://unpkg.com; media-src blob: data: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://esm.sh https://fonts.bunny.net https://fonts.googleapis.com https://fonts.gstatic.com https://unpkg.com; worker-src blob:; connect-src blob: data:; frame-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
-<title>傅里叶变换与低通滤波</title>
-<style>:root{color-scheme:light dark;background:light-dark(rgb(255 255 255), rgb(24 24 24))}html,body{margin:0}body{box-sizing:border-box;padding:1rem;background:inherit}iframe{display:block;width:100%;height:calc(100vh - 2rem);margin:0 auto;border:0}</style>
-
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="交互理解傅里叶变换、频率中心、低通 mask 与逆变换。">
+  <title>傅里叶变换与低通滤波</title>
+  <link rel="icon" href="../../assets/favicon.svg" type="image/svg+xml">
+  <style>
+    :root {
+      color-scheme: light;
+      background: #ffffff;
+      color: #1a1c1f;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; min-width: 320px; background: #ffffff; color: #1a1c1f; }
+    .visual-site-header {
+      min-height: 58px;
+      padding: 0 24px;
+      border-bottom: 1px solid #d5dade;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+      font-size: 14px;
+    }
+    .visual-site-header a { color: #174f62; font-weight: 650; text-decoration: none; }
+    .visual-site-header span { color: #667177; }
+    main { width: min(100% - 32px, 1400px); margin: 0 auto; padding: 22px 0 34px; }
+    @media (max-width: 560px) {
+      .visual-site-header { padding: 0 16px; }
+      .visual-site-header span { display: none; }
+      main { width: min(100% - 24px, 1400px); padding-top: 16px; }
+    }
+    @media (prefers-color-scheme: dark) {
+      :root, body { color-scheme: dark; background: #111416; color: #f4f6f7; }
+      .visual-site-header { border-color: #343d42; }
+      .visual-site-header a { color: #79c3db; }
+      .visual-site-header span { color: #aab4ba; }
+      #fourier-lowpass-explainer {
+        --background: #111416;
+        --foreground: #f4f6f7;
+        --card: #1a1f22;
+        --card-foreground: #f4f6f7;
+        --primary: #62b6d1;
+        --primary-foreground: #111416;
+        --muted: #293136;
+        --muted-foreground: #aab4ba;
+        --accent: #173641;
+        --accent-foreground: #b7e6f5;
+        --border: #343d42;
+        --viz-series-1: #62b6d1;
+        --viz-series-2: #f18a70;
+      }
+      #fourier-lowpass-explainer .fl-step { background: #343d42; }
+      #fourier-lowpass-explainer .fl-important { background: #332722; }
+    }
+  </style>
 </head>
 <body>
-<iframe id="codex-visualization" sandbox="allow-scripts" referrerpolicy="no-referrer" title="傅里叶变换与低通滤波" data-srcdoc="&lt;!doctype html&gt;
-&lt;html lang=&quot;en&quot; data-visualize-standalone&gt;
-&lt;head&gt;
-&lt;meta charset=&quot;utf-8&quot;&gt;
-&lt;meta name=&quot;viewport&quot; content=&quot;width=device-width, initial-scale=1&quot;&gt;
-&lt;meta name=&quot;referrer&quot; content=&quot;no-referrer&quot;&gt;
-&lt;meta http-equiv=&quot;Content-Security-Policy&quot; content=&quot;default-src &#x27;none&#x27;; script-src &#x27;unsafe-inline&#x27; &#x27;unsafe-eval&#x27; &#x27;wasm-unsafe-eval&#x27; blob: data: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://esm.sh https://fonts.bunny.net https://fonts.googleapis.com https://fonts.gstatic.com https://unpkg.com https://persistent.oaistatic.com/plugins/visualize/; style-src &#x27;unsafe-inline&#x27; blob: data: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://esm.sh https://fonts.bunny.net https://fonts.googleapis.com https://fonts.gstatic.com https://unpkg.com; img-src blob: data: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://esm.sh https://fonts.bunny.net https://fonts.googleapis.com https://fonts.gstatic.com https://unpkg.com; font-src blob: data: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://esm.sh https://fonts.bunny.net https://fonts.googleapis.com https://fonts.gstatic.com https://unpkg.com; media-src blob: data: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://esm.sh https://fonts.bunny.net https://fonts.googleapis.com https://fonts.gstatic.com https://unpkg.com; worker-src blob:; connect-src blob: data:; frame-src &#x27;none&#x27;; object-src &#x27;none&#x27;; base-uri &#x27;none&#x27;; form-action &#x27;none&#x27;&quot;&gt;
-&lt;title&gt;傅里叶变换与低通滤波&lt;/title&gt;
-&lt;style&gt;:root {
-  color-scheme: light dark;
-  background-color: var(
-    --background,
-    var(--color-background-primary, light-dark(rgb(255 255 255), rgb(24 24 24)))
-  ) !important;
-
-  /* Agent-facing contract; keep in sync with SKILL.md. */
-  --background: var(
-    --color-background-primary,
-    light-dark(rgb(255 255 255), rgb(24 24 24))
-  );
-  --foreground: var(
-    --color-text-primary,
-    light-dark(rgb(26 28 31), rgb(255 255 255))
-  );
-  --card: color-mix(in oklab, var(--foreground) 5%, var(--background));
-  --card-foreground: var(
-    --color-text-primary,
-    light-dark(rgb(26 28 31), rgb(255 255 255))
-  );
-  --popover: var(
-    --color-background-secondary,
-    light-dark(rgb(255 255 255), rgb(45 45 45))
-  );
-  --popover-foreground: var(
-    --color-text-primary,
-    light-dark(rgb(26 28 31), rgb(255 255 255))
-  );
-  --primary: var(
-    --color-text-info,
-    light-dark(rgb(51 156 255), rgb(131 195 255))
-  );
-  --primary-foreground: var(
-    --color-text-inverse,
-    light-dark(rgb(255 255 255), rgb(13 13 13))
-  );
-  --secondary: var(
-    --color-background-secondary,
-    light-dark(rgb(255 255 255 / 96%), rgb(54 54 54 / 96%))
-  );
-  --secondary-foreground: var(
-    --color-text-primary,
-    light-dark(rgb(26 28 31), rgb(255 255 255))
-  );
-  --muted: color-mix(in srgb, var(--foreground) 10%, transparent);
-  --muted-foreground: var(
-    --color-text-secondary,
-    light-dark(rgb(26 28 31 / 49.4%), rgb(255 255 255 / 49.8%))
-  );
-  --accent: var(
-    --color-background-info,
-    light-dark(rgb(229 242 255), rgb(13 39 63))
-  );
-  --accent-foreground: var(
-    --color-text-info,
-    light-dark(rgb(51 156 255), rgb(131 195 255))
-  );
-  --destructive: var(
-    --color-text-warning,
-    light-dark(rgb(226 85 7), rgb(255 133 73))
-  );
-  --border: var(
-    --color-border-secondary,
-    light-dark(rgb(26 28 31 / 8%), rgb(255 255 255 / 8.2%))
-  );
-  --input: var(
-    --color-border-primary,
-    light-dark(
-      rgb(26 28 31 / 11.8%),
-      color-mix(in oklab, rgb(0 0 0) 10%, transparent)
-    )
-  );
-  --ring: var(
-    --color-ring-primary,
-    light-dark(rgb(51 156 255), rgb(131 195 255 / 76%))
-  );
-  --font-size-base: var(--font-text-md-size, 16px);
-  --blue: light-dark(rgb(51 156 255), rgb(51 156 255));
-  --orange: light-dark(rgb(226 85 7), rgb(251 106 34));
-  --green: light-dark(rgb(0 162 64), rgb(64 201 119));
-  --red: light-dark(rgb(224 46 42), rgb(255 103 100));
-  --purple: light-dark(rgb(146 79 247), rgb(173 123 249));
-  --yellow: light-dark(rgb(255 195 0), rgb(255 210 64));
-  --viz-series-1: var(--primary);
-  --viz-series-2: light-dark(rgb(243 136 59), rgb(245 154 86));
-  --viz-series-3: light-dark(rgb(93 201 119), rgb(116 213 139));
-  --viz-series-4: light-dark(rgb(235 119 177), rgb(240 143 192));
-  --viz-series-5: light-dark(rgb(155 121 236), rgb(170 145 239));
-  --viz-series-6: light-dark(rgb(58 185 177), rgb(90 203 194));
-
-  /* Internal implementation variables; not part of the agent contract. */
-  --font-sans:
-    -apple-system-body, ui-sans-serif, -apple-system, system-ui, &quot;Segoe UI&quot;,
-    Helvetica, &quot;Apple Color Emoji&quot;, Arial, sans-serif, &quot;Segoe UI Emoji&quot;,
-    &quot;Segoe UI Symbol&quot;;
-  --font-mono:
-    ui-monospace, SFMono-Regular, &quot;SF Mono&quot;, Menlo, Consolas, &quot;Liberation Mono&quot;,
-    monospace;
-  --font-size-normal: max(11px, var(--font-size-base));
-  --font-size-tooltip: calc(var(--font-size-base) - 1px);
-  --font-size-small: max(11px, calc(var(--font-size-base) - 2px));
-  --font-size-h1: calc(var(--font-size-normal) * 1.7142857143);
-  --font-size-h2: calc(var(--font-size-normal) * 1.4285714286);
-  --font-size-h3: calc(var(--font-size-normal) * 1.2857142857);
-  --font-weight-normal: 400;
-  --font-weight-medium: 500;
-  --icon-size: 16px;
-  --line-height-normal: calc(var(--font-size-normal) * 1.5);
-  --line-height-tooltip: calc(var(--font-size-tooltip) * 1.4285714286);
-  --line-height-small: calc(var(--font-size-small) + 4px);
-  --corner-shape: round;
-  --radius: var(--border-radius-lg, 8px);
-  --radius-sm: calc(var(--radius) * 0.5);
-  --radius-md: calc(var(--radius) * 0.75);
-  --radius-lg: var(--radius);
-  --radius-2xl: calc(var(--radius) * 2);
-  --radius-full: 9999px;
-  --shadow-sm: 0 1px 2px -1px rgb(0 0 0 / 8%);
-  --checkmark-image: url(&quot;data:image/svg+xml,%3Csvg xmlns=&#x27;http://www.w3.org/2000/svg&#x27; viewBox=&#x27;0 0 17 17&#x27;%3E%3Cpath d=&#x27;M12.8961 3.64101C13.1297 3.41418 13.4984 3.37523 13.7779 3.56581C14.0571 3.75635 14.1554 4.11331 14.0299 4.41347L13.9615 4.53847L7.71151 13.7045C7.59411 13.8767 7.4063 13.9877 7.19881 14.0072C6.99136 14.0267 6.78564 13.9533 6.63826 13.806L2.88826 10.056L2.79842 9.9457C2.6192 9.67407 2.64927 9.30496 2.88826 9.06581C3.12738 8.82669 3.49647 8.79676 3.76815 8.97597L3.8785 9.06581L7.03084 12.2182L12.8053 3.74941L12.8961 3.64101Z&#x27;/%3E%3C/svg%3E&quot;);
-
-  /* Legacy aliases; not part of the current agent contract. */
-  --viz-bg: transparent;
-  --viz-panel: var(--card);
-  --viz-border: var(--border);
-  --viz-text: var(--foreground);
-  --viz-muted: var(--muted-foreground);
-  --viz-accent: var(--primary);
-  --viz-accent-text: var(--primary-foreground);
-  --viz-accent-bg: var(--accent);
-  --viz-font-size: var(--font-size-base);
-  --viz-warning: var(--destructive);
-}
-
-:root[data-theme=&quot;light&quot;] {
-  color-scheme: light;
-}
-
-:root[data-theme=&quot;dark&quot;] {
-  color-scheme: dark;
-}
-
-* {
-  box-sizing: border-box;
-}
-
-html &gt; body {
-  /* Preserve MCP aliases for older inline renderers without creating :root cycles. */
-  --color-background-primary: var(
-    --background,
-    light-dark(rgb(255 255 255), rgb(24 24 24))
-  );
-  --color-text-primary: var(
-    --foreground,
-    light-dark(rgb(26 28 31), rgb(255 255 255))
-  );
-  --color-border-secondary: var(
-    --border,
-    light-dark(rgb(26 28 31 / 8%), rgb(255 255 255 / 8.2%))
-  );
-
-  margin: 0;
-  padding: var(--visualize-paint-gutter, 0px);
-  color: var(--foreground);
-  background: transparent !important;
-  font-family: var(--font-sans) !important;
-  -webkit-font-smoothing: antialiased;
-  font-size: var(--font-size-base);
-  line-height: calc(var(--font-size-base) * 1.625);
-  font-weight: var(--font-weight-normal);
-}
-
-.cursor-interaction {
-  cursor: var(--cursor-interaction, pointer);
-}
-
-a {
-  color: color-mix(in srgb, var(--viz-accent) 80%, var(--viz-text) 20%);
-  cursor: var(--cursor-interaction, pointer);
-  text-decoration: none;
-  text-underline-offset: 2px;
-  font-weight: inherit;
-}
-
-a:is(:hover, :focus-visible) {
-  text-decoration-line: underline;
-  text-decoration-style: dashed;
-  text-decoration-thickness: 0.5px;
-}
-
-h1,
-h2,
-h3,
-h4,
-h5,
-h6,
-p {
-  margin-block: 0;
-}
-p,
-h1,
-h2,
-h3,
-h4,
-h5,
-h6,
-li,
-.table {
-  font-family: var(--font-sans);
-}
-
-h1 {
-  font-size: calc(var(--font-size-base) * 1.5);
-  line-height: 1.3333333333;
-}
-
-h2 {
-  font-size: calc(var(--font-size-base) * 1.25);
-  line-height: 1.4;
-}
-h3 {
-  font-size: calc(var(--font-size-base) * 1.125);
-  line-height: 1.5555555556;
-}
-h4 {
-  font-size: var(--font-size-base);
-  line-height: 1.5;
-}
-h5,
-h6 {
-  font-size: var(--font-size-base);
-  line-height: calc(var(--font-size-base) * 1.625);
-}
-
-h1,
-h2,
-h3,
-h4,
-h5,
-h6,
-b,
-strong,
-th {
-  font-weight: 600;
-}
-
-code:not(pre code) {
-  display: inline;
-  padding: 1px 6px;
-  border-radius: var(--radius-sm);
-  corner-shape: var(--corner-shape);
-  background: var(--muted);
-  font-family: var(--font-mono);
-  font-size: 0.92em;
-  overflow-wrap: anywhere;
-  -webkit-box-decoration-break: clone;
-  box-decoration-break: clone;
-  word-break: break-word;
-}
-pre,
-pre code {
-  font-family: var(--font-mono);
-  font-size: 12px;
-  line-height: 20px;
-}
-
-.table-responsive {
-  width: 100%;
-  overflow-x: auto;
-  scrollbar-width: thin;
-}
-
-.table {
-  width: 100%;
-  color: var(--foreground);
-  font: inherit;
-  text-align: start;
-  border-collapse: separate;
-  border-spacing: 0;
-  font-size: calc(var(--font-size-base) * 0.875);
-  line-height: calc(var(--font-size-base) * 1.625);
-  font-family: var(--font-sans);
-}
-
-.table :is(th, td) {
-  padding-block: 10px;
-  padding-inline: 0 24px;
-  overflow-wrap: anywhere;
-  border-bottom: 1px solid var(--border);
-  text-align: start;
-  vertical-align: top;
-  border-bottom-color: color-mix(in srgb, var(--foreground) 5%, transparent);
-}
-.table :is(th, td):not(:last-child) {
-  padding-inline-end: calc(var(--font-size-base) * 1.5);
-}
-
-.table-responsive &gt; .table :is(th, td) {
-  overflow-wrap: break-word;
-}
-
-.table :is(th, td):last-child {
-  padding-inline-end: 0;
-}
-
-.table :is(caption, thead th) {
-  font-weight: 600;
-}
-
-.table thead :is(th, td) {
-  border-bottom-color: var(--border-strong, var(--input));
-  padding-block: calc(var(--font-size-base) / 2);
-  line-height: var(--font-size-base);
-}
-
-.table tbody tr:last-child :is(th, td) {
-  border-bottom: 0;
-}
-.table tbody :is(th, td) {
-  padding-block: calc(var(--font-size-base) * 0.625);
-}
-
-.table.table-sm :is(th, td) {
-  padding-block: 8px;
-}
-
-.table.table-sm :is(th, td):not(:last-child) {
-  padding-inline-end: 16px;
-}
-
-.table :is(.text-end, [align=&quot;right&quot;]) {
-  text-align: end;
-  font-variant-numeric: tabular-nums;
-}
-
-.table :is(.text-center, [align=&quot;center&quot;]) {
-  text-align: center;
-}
-
-.table .text-nowrap {
-  white-space: nowrap;
-}
-
-#widget {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  width: 100%;
-  padding: 0;
-  background: transparent !important;
-}
-
-.card {
-  min-width: 0;
-  padding: 12px;
-  overflow: hidden;
-  overflow-wrap: break-word;
-  border-radius: var(--radius-2xl);
-  corner-shape: var(--corner-shape);
-  color: var(--card-foreground);
-  background: var(--card);
-}
-
-.widget {
-  min-width: 0;
-  overflow: hidden;
-  border: 0;
-  border-radius: var(--radius-lg);
-  corner-shape: var(--corner-shape);
-  box-shadow: 0 0 0 0.5px var(--border-strong, var(--border));
-  color: var(--foreground);
-  background: var(--background);
-}
-
-#widget &gt; :not(.card, .widget, .progress) {
-  width: 100% !important;
-  max-width: none !important;
-  margin: 0 !important;
-  padding: 0 !important;
-  border: 0 !important;
-  border-radius: 0 !important;
-  background: transparent !important;
-  box-shadow: none !important;
-}
-
-.tooltip {
-  position: fixed;
-  z-index: 50;
-  top: 0;
-  left: 0;
-  width: max-content;
-  max-width: min(
-    20rem,
-    var(--tooltip-available-width, calc(100vw - 10px)),
-    calc(100vw - 10px)
-  );
-  max-height: min(
-    var(--tooltip-available-height, calc(100vh - 10px)),
-    calc(100vh - 10px)
-  );
-  border: 1px solid var(--border);
-  corner-shape: var(--corner-shape);
-  overflow-wrap: break-word;
-  white-space: normal;
-  pointer-events: none;
-  user-select: none;
-  font-family: var(--font-sans);
-  padding: 5px 12px;
-  border-color: color-mix(
-    in oklab,
-    light-dark(var(--primary-foreground), var(--foreground)) 5%,
-    transparent
-  );
-  border-radius: var(--radius-2xl);
-  color: light-dark(var(--primary-foreground), var(--foreground));
-  background: light-dark(var(--foreground), var(--popover));
-  box-shadow: 0 8px 18px rgb(15 23 42 / 20%);
-  letter-spacing: -0.15px;
-  font-size: calc(var(--font-size-base) * 14 / 16);
-  font-size: round(nearest, calc(var(--font-size-base) * 14 / 16), 1px);
-  font-weight: 600;
-  line-height: 18px;
-  text-align: center;
-}
-
-.viz-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(max(180px, 24%), 1fr));
-  gap: 10px;
-}
-
-.viz-stat {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.viz-stat-value {
-  font-size: var(--font-size-h2);
-  font-weight: var(--font-weight-medium);
-  line-height: 1.25;
-}
-
-.viz-row {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 10px;
-}
-
-hr {
-  width: 100%;
-  height: 1px;
-  margin-block: 6px;
-  border: 0;
-  background: var(--border);
-}
-
-.nav {
-  display: flex;
-  min-width: 0;
-  align-items: center;
-  gap: 4px;
-}
-
-.progress {
-  display: flex;
-  height: 8px;
-  margin-block: calc((var(--line-height-normal, 1.5em) - 8px) / 2);
-  overflow: hidden;
-  border: 0;
-  border-radius: var(--radius-full);
-  background: var(--muted);
-}
-
-.progress-bar:only-child {
-  border-radius: var(--radius-full);
-}
-
-.progress-bar {
-  height: 100%;
-  flex-shrink: 0;
-  border: 0;
-  background: var(--viz-series-1);
-}
-
-.viz-badge {
-  display: inline-flex;
-  align-items: center;
-  padding: 4px 8px;
-  border-radius: var(--radius-sm);
-  color: color-mix(in srgb, var(--foreground) 40%, var(--muted-foreground));
-  background: color-mix(in srgb, var(--foreground) 5%, transparent);
-  font-family: var(--font-sans);
-  font-size: calc(var(--font-size-base) * 14 / 16);
-  font-size: round(nearest, calc(var(--font-size-base) * 14 / 16), 1px);
-  font-weight: var(--font-weight-normal);
-  line-height: 1;
-}
-
-small,
-.text-small {
-  font-size: var(--font-size-small);
-  line-height: var(--line-height-small);
-}
-
-.text-muted {
-  color: var(--muted-foreground);
-}
-
-.tabular-nums {
-  font-variant-numeric: tabular-nums;
-}
-
-.sr-only {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-  white-space: nowrap;
-  border: 0;
-}
-
-.viz-controls {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px;
-}
-
-.viz-controls &gt; .form-label {
-  display: grid;
-  min-width: min(100%, 260px);
-  flex: 1 1 280px;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: baseline;
-  gap: 2px 12px;
-  margin-bottom: 0;
-}
-
-.viz-controls &gt; .form-label &gt; :is(.form-control, .form-range, .form-select) {
-  grid-column: 1 / -1;
-}
-
-.btn,
-.nav-link,
-.form-check-input,
-.form-control,
-.form-range,
-.form-select {
-  font: inherit;
-}
-
-/* Match inline alignment without overriding a containing flex or grid layout. */
-.btn,
-.nav-link,
-.form-control,
-.form-select,
-.form-range,
-.form-check {
-  vertical-align: middle;
-}
-
-.btn,
-.nav-link {
-  --btn-size: calc(12px + 2 * var(--control-spacing, 12px));
-  appearance: button;
-  display: inline-flex;
-  inline-size: fit-content;
-  max-inline-size: 100%;
-  align-items: center;
-  justify-content: center;
-  gap: 4px;
-  margin: 0;
-  padding: 0 8px;
-  -webkit-app-region: no-drag;
-  border: 1px solid var(--input);
-  corner-shape: var(--corner-shape);
-  cursor: var(--cursor-interaction, pointer);
-  text-align: center;
-  text-decoration: none;
-  white-space: nowrap;
-  user-select: none;
-  -webkit-font-smoothing: inherit;
-  font-family: var(--font-sans);
-  height: fit-content;
-  min-height: var(--btn-size);
-  padding-inline: var(--control-spacing, 12px);
-  border-color: transparent;
-  border-radius: var(--radius-full);
-  color: var(--foreground);
-  background: color-mix(in srgb, var(--foreground) 5%, transparent);
-  font-size: calc(var(--font-size-base) * 14 / 16);
-  font-size: round(nearest, calc(var(--font-size-base) * 14 / 16), 1px);
-  font-weight: var(--font-weight-normal);
-  line-height: 18px;
-}
-
-.btn {
-  border-color: var(--border);
-  color: var(--secondary-foreground);
-  background: var(--secondary);
-}
-
-/* Codex Button size=&quot;compact&quot;; appearance stays with the button variant. */
-.btn-sm {
-  --btn-size: 24px;
-  padding-inline: 8px;
-  font-size: calc(var(--font-size-base) * 12 / 16);
-  font-size: round(nearest, calc(var(--font-size-base) * 12 / 16), 1px);
-  line-height: 16px;
-}
-
-.btn:is(.btn-block, .viz-tile) {
-  inline-size: 100%;
-}
-
-.btn.viz-tile {
-  min-width: 0;
-  overflow-wrap: anywhere;
-  white-space: normal;
-}
-
-a.btn {
-  cursor: var(--cursor-interaction, pointer);
-  text-decoration: none;
-}
-
-.btn:not(:disabled):hover {
-  background: light-dark(
-    color-mix(in srgb, var(--foreground) 5.5%, transparent),
-    color-mix(in srgb, var(--foreground) 8%, transparent)
-  );
-}
-
-.nav-link:not(:disabled):not([aria-disabled=&quot;true&quot;]):hover {
-  background: color-mix(in srgb, var(--foreground) 10%, transparent);
-}
-
-.btn-primary {
-  border-color: var(--border);
-  color: var(--primary-foreground);
-  background: var(--foreground);
-  background-clip: border-box;
-}
-
-.btn-primary .text-muted {
-  color: color-mix(in srgb, var(--primary-foreground) 50%, transparent);
-}
-
-.btn-primary:not(:disabled):hover {
-  background: color-mix(in srgb, var(--foreground) 80%, transparent);
-  background-clip: border-box;
-}
-
-.btn-ghost {
-  border-color: transparent;
-  color: var(--muted-foreground);
-  background: transparent;
-}
-
-.btn-ghost:not(:disabled):hover {
-  color: var(--muted-foreground);
-  background: light-dark(
-    color-mix(in srgb, var(--foreground) 5.5%, transparent),
-    color-mix(in srgb, var(--foreground) 8%, transparent)
-  );
-}
-
-.nav-pills .nav-link {
-  min-width: 0;
-  border-color: transparent;
-  color: var(--muted-foreground);
-  background: transparent;
-}
-
-.nav-justified .nav-link {
-  flex: 1 1 0;
-  overflow-wrap: anywhere;
-  white-space: normal;
-}
-
-.nav-pills .nav-link.active {
-  color: var(--foreground);
-  background: var(--muted);
-}
-
-/* Shared preview chrome; product styles stay inside each variant. */
-.viz-dotted-background {
-  background-image: radial-gradient(
-    circle,
-    color-mix(in srgb, var(--foreground) 14%, transparent) 0.8px,
-    transparent 0.8px
-  );
-  background-position: center;
-  background-size: 16px 16px;
-}
-
-.viz-carousel {
-  position: relative;
-  min-width: 0;
-}
-
-.viz-carousel:has(&gt; .viz-carousel-controls) {
-  min-height: calc(60px + var(--viz-carousel-picker-height, 0px));
-  padding-bottom: 60px;
-}
-
-.viz-carousel &gt; [data-variant][hidden] {
-  display: none !important;
-}
-
-.viz-carousel &gt; [data-variant] {
-  isolation: isolate;
-}
-
-.viz-carousel-controls {
-  --viz-carousel-hover: light-dark(
-    color-mix(in srgb, var(--foreground) 5.4%, transparent),
-    color-mix(in srgb, var(--foreground) 7.8%, transparent)
-  );
-  position: absolute;
-  z-index: 2;
-  bottom: 8px;
-  left: 50%;
-  display: flex;
-  width: max-content;
-  /* Leave room for the host&#x27;s design-controls launcher at the trailing edge. */
-  max-width: calc(100% - 96px);
-  align-items: center;
-  gap: 0;
-  padding: 0;
-  border: 1px solid var(--border);
-  border-radius: 16px;
-  color: var(--foreground);
-  background: var(--background);
-  font-family: var(--font-sans);
-  /* Match the settings dropdown chrome independently of the content font size. */
-  font-size: 13px;
-  font-weight: var(--font-weight-normal);
-  line-height: 18px;
-  transform: translateX(-50%);
-  user-select: none;
-}
-
-/* Keep authored mockup button styles out of the shared carousel chrome. */
-.viz-carousel-controls button,
-.viz-carousel-picker &gt; summary {
-  display: flex !important;
-  height: auto !important;
-  min-height: 30px;
-  align-items: center !important;
-  justify-content: center !important;
-  gap: 4px;
-  padding: 0 6px !important;
-  -webkit-app-region: no-drag;
-  border: 0 !important;
-  border-radius: 14px !important;
-  color: inherit !important;
-  background: transparent !important;
-  font: inherit !important;
-  -webkit-tap-highlight-color: transparent;
-}
-
-.viz-carousel-controls &gt; button,
-.viz-carousel-picker &gt; summary {
-  position: relative;
-  isolation: isolate;
-}
-
-.viz-carousel-controls &gt; button {
-  --icon-size: 16px;
-  width: 30px !important;
-  padding: 0 !important;
-}
-
-.viz-carousel-picker &gt; summary {
-  padding-inline: 12px !important;
-}
-
-.viz-carousel-controls .viz-carousel-caret {
-  width: 14px;
-  height: 14px;
-  flex: none;
-  margin: 0;
-  color: inherit;
-  transform: rotate(180deg);
-}
-
-.viz-carousel-controls &gt; button &gt; svg,
-.viz-carousel-controls .viz-carousel-caret,
-.viz-carousel-count {
-  opacity: 0.5;
-}
-
-.viz-carousel-controls &gt; button::before,
-.viz-carousel-picker &gt; summary::before {
-  position: absolute;
-  z-index: -1;
-  inset: 3px;
-  border-radius: 12px;
-  content: &quot;&quot;;
-  pointer-events: none;
-}
-
-.viz-carousel-controls &gt; button:hover::before,
-.viz-carousel-picker &gt; summary:hover::before {
-  background: var(--viz-carousel-hover);
-}
-
-.viz-carousel-controls &gt; button,
-.viz-carousel-controls [data-lucide],
-.viz-carousel-controls .lucide {
-  flex-shrink: 0;
-}
-
-.viz-carousel-picker {
-  min-width: 0;
-}
-
-.viz-carousel-picker &gt; summary {
-  min-width: 0;
-  list-style: none;
-}
-
-.viz-carousel-picker &gt; summary::-webkit-details-marker {
-  display: none;
-}
-
-.viz-carousel-count {
-  flex-shrink: 0;
-  white-space: nowrap;
-}
-
-.viz-carousel-name {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.viz-carousel-options {
-  position: absolute;
-  right: 0;
-  bottom: calc(100% + 4px);
-  left: 0;
-  display: flex;
-  max-height: 240px;
-  flex-direction: column;
-  gap: 2px;
-  overflow: auto;
-  padding: 4px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  background: var(--background);
-  box-shadow: 0 4px 12px light-dark(rgb(0 0 0 / 6%), rgb(0 0 0 / 25%));
-}
-
-.viz-carousel-options &gt; button {
-  border-radius: max(0px, calc(var(--radius-lg) - 5px)) !important;
-  width: 100% !important;
-  min-height: 28px;
-  justify-content: flex-start !important;
-  padding: 4px 8px !important;
-  font-size: var(--font-size-small) !important;
-  text-align: start;
-  white-space: normal;
-  overflow-wrap: anywhere;
-}
-
-.viz-carousel-options &gt; [aria-current=&quot;true&quot;],
-.viz-carousel-options &gt; button:hover {
-  background: var(--viz-carousel-hover) !important;
-}
-
-.btn:disabled,
-.nav-link:disabled,
-.nav-link[aria-disabled=&quot;true&quot;] {
-  cursor: not-allowed;
-  opacity: 0.4;
-}
-
-[data-lucide] {
-  stroke-width: 1.6;
-}
-
-.form-label {
-  display: block;
-  margin-bottom: 6px;
-  color: var(--foreground);
-}
-
-.form-control {
-  display: block;
-  width: 100%;
-  padding: 0 8px;
-  outline: none;
-  border: 1px solid var(--input);
-  corner-shape: var(--corner-shape);
-  color: var(--foreground);
-  font-family: var(--font-sans);
-  height: calc(12px + 2 * var(--control-spacing, 12px));
-  min-height: calc(12px + 2 * var(--control-spacing, 12px));
-  padding-inline: calc(4px + var(--control-spacing, 12px) / 2);
-  border-color: var(--input);
-  border-radius: var(--radius-md);
-  background: color-mix(in srgb, var(--popover) 96%, transparent);
-  font-size: calc(var(--font-size-base) * 14 / 16);
-  font-size: round(nearest, calc(var(--font-size-base) * 14 / 16), 1px);
-  font-weight: var(--font-weight-normal);
-  line-height: 1.4285714286;
-}
-.form-control:is(
-  [type=&quot;file&quot;],
-  [type=&quot;date&quot;],
-  [type=&quot;datetime-local&quot;],
-  [type=&quot;month&quot;],
-  [type=&quot;week&quot;],
-  [type=&quot;color&quot;]
-) {
-  height: calc(12px + 2 * var(--control-spacing, 12px));
-  min-height: calc(12px + 2 * var(--control-spacing, 12px));
-  line-height: 18px;
-}
-.form-control:is(
-  [type=&quot;date&quot;],
-  [type=&quot;datetime-local&quot;],
-  [type=&quot;month&quot;],
-  [type=&quot;week&quot;]
-) {
-  padding-inline: var(--control-spacing, 12px);
-}
-
-.form-control::placeholder {
-  color: var(--muted-foreground);
-}
-
-.form-control[type=&quot;file&quot;] {
-  overflow: hidden;
-  cursor: var(--cursor-interaction, pointer);
-  padding: 0;
-}
-
-.form-control[type=&quot;file&quot;]::file-selector-button {
-  padding: 0 8px;
-  border: 0;
-  border-right: 1px solid var(--input);
-  color: var(--secondary-foreground);
-  background: var(--secondary);
-  cursor: inherit;
-  font: inherit;
-  min-height: calc(10px + 2 * var(--control-spacing, 12px));
-  padding-inline: var(--control-spacing, 12px);
-  margin-inline-end: var(--control-spacing, 12px);
-}
-
-.form-control[type=&quot;file&quot;]:not(:disabled):hover::file-selector-button {
-  background: color-mix(in srgb, var(--foreground) 6%, var(--secondary));
-}
-
-.form-control-color[type=&quot;color&quot;] {
-  width: 40px;
-  height: calc(12px + 2 * var(--control-spacing, 12px));
-  padding: 3px;
-  cursor: var(--cursor-interaction, pointer);
-}
-
-.form-control-color[type=&quot;color&quot;]::-webkit-color-swatch-wrapper {
-  padding: 0;
-}
-
-.form-control-color[type=&quot;color&quot;]::-webkit-color-swatch {
-  border: 0;
-  border-radius: calc(var(--radius-lg) - 4px);
-  corner-shape: var(--corner-shape);
-}
-
-textarea.form-control {
-  height: auto;
-  resize: vertical;
-  min-height: 96px;
-  padding: 8px 10px;
-}
-
-.form-control:focus-visible {
-  border-color: var(--ring);
-  box-shadow: none;
-}
-.form-control:disabled {
-  color: var(--muted-foreground);
-  background: color-mix(in srgb, var(--foreground) 5%, transparent);
-  opacity: 1;
-}
-.form-control[aria-invalid=&quot;true&quot;] {
-  border-color: var(--red);
-  box-shadow: 0 0 0 2px color-mix(in srgb, var(--red) 20%, transparent);
-}
-
-.form-control:disabled,
-.form-select:disabled {
-  cursor: not-allowed;
-}
-
-.form-select {
-  appearance: none;
-  display: block;
-  width: 100%;
-  height: fit-content;
-  min-height: calc(12px + 2 * var(--control-spacing, 12px));
-  margin: 0;
-  /* The secondary icon role is 14px at compact density and 16px at web density. */
-  --icon-size: calc(10px + var(--control-spacing, 12px) / 2);
-  /* Settings dropdowns retain a 12px inset and a 4px text-to-chevron gap. */
-  padding: 0 calc(16px + var(--icon-size)) 0 12px;
-  outline: none;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-full);
-  corner-shape: var(--corner-shape);
-  color: var(--foreground);
-  background-color: var(--secondary);
-  background-image:
-    linear-gradient(
-      45deg,
-      transparent calc(50% - 0.6px),
-      var(--muted-foreground) calc(50% - 0.6px) calc(50% + 0.6px),
-      transparent calc(50% + 0.6px)
-    ),
-    linear-gradient(
-      135deg,
-      transparent calc(50% - 0.6px),
-      var(--muted-foreground) calc(50% - 0.6px) calc(50% + 0.6px),
-      transparent calc(50% + 0.6px)
-    );
-  background-position:
-    calc(100% - 12px - var(--icon-size) / 2) 50%,
-    calc(100% - 12px - var(--icon-size) * 0.18) 50%;
-  background-repeat: no-repeat;
-  background-size: calc(var(--icon-size) * 0.32) calc(var(--icon-size) * 0.32);
-  cursor: var(--cursor-interaction, default);
-  font-size: calc(var(--font-size-base) * 14 / 16);
-  font-size: round(nearest, calc(var(--font-size-base) * 14 / 16), 1px);
-  font-weight: var(--font-weight-normal);
-  line-height: 18px;
-}
-
-.form-select :is(option, optgroup) {
-  color: var(--popover-foreground);
-  background-color: var(--popover);
-}
-
-.form-select :is(option, optgroup):disabled {
-  color: var(--muted-foreground);
-}
-
-.form-select:not(:disabled):hover {
-  background-color: light-dark(
-    color-mix(in srgb, var(--foreground) 5.5%, transparent),
-    color-mix(in srgb, var(--foreground) 8%, transparent)
-  );
-}
-
-.form-select:focus-visible {
-  box-shadow: 0 0 0 2px var(--ring);
-}
-.form-select:disabled {
-  opacity: 0.4;
-}
-
-.form-check {
-  display: flex;
-  min-height: calc(12px + 2 * var(--control-spacing, 12px));
-  align-items: center;
-  gap: 6px;
-}
-
-.form-check-input {
-  appearance: none;
-  width: 14px;
-  height: 14px;
-  flex: 0 0 auto;
-  margin: 0;
-  border: 1px solid var(--input);
-  color: var(--primary-foreground);
-  background-color: transparent;
-  cursor: var(--cursor-interaction, default);
-  transition:
-    background-color 150ms,
-    border-color 150ms,
-    box-shadow 150ms;
-}
-
-.form-check:not(.form-switch) .form-check-input[type=&quot;checkbox&quot;] {
-  corner-shape: round;
-  box-shadow: var(--shadow-sm);
-  position: relative;
-  width: calc(10px + var(--control-spacing, 12px) / 2);
-  height: calc(10px + var(--control-spacing, 12px) / 2);
-  border-color: var(--border-strong, var(--input));
-  border-radius: calc(var(--radius-sm) / 2);
-  background-color: transparent;
-  color: var(--foreground);
-}
-
-.form-check:not(.form-switch)
-  .form-check-input:not(:disabled):not(:checked):hover {
-  background-color: var(--card);
-}
-
-.form-check:not(.form-switch)
-  .form-check-input[type=&quot;checkbox&quot;]:is(:checked, :indeterminate) {
-  border-color: var(--border-strong, var(--input));
-  background-color: color-mix(in srgb, var(--popover) 96%, transparent);
-}
-
-.form-check:not(.form-switch)
-  .form-check-input[type=&quot;checkbox&quot;]:checked::before {
-  display: block;
-  width: 100%;
-  height: 100%;
-  background: var(--primary-foreground);
-  content: &quot;&quot;;
-  mask: var(--checkmark-image) center / 12px 12px no-repeat;
-  background-color: var(--foreground);
-}
-.form-check:not(.form-switch)
-  .form-check-input[type=&quot;checkbox&quot;]:indeterminate::before {
-  position: absolute;
-  inset: 0;
-  display: block;
-  width: 65%;
-  height: 6.65%;
-  margin: auto;
-  border-radius: var(--radius-full);
-  background: var(--foreground);
-  mask: none;
-  content: &quot;&quot;;
-}
-
-.form-check-input[type=&quot;radio&quot;] {
-  border-radius: var(--radius-full);
-  width: 16px;
-  height: 16px;
-  border: 0;
-  box-shadow: inset 0 0 0 1px var(--input);
-}
-
-.form-check-input[type=&quot;radio&quot;]:checked {
-  border: 0;
-  background: radial-gradient(
-    circle,
-    var(--primary-foreground) 0 3px,
-    var(--foreground) 3px
-  );
-  box-shadow: none;
-}
-
-.form-check:not(.form-switch) .form-check-input:focus-visible {
-  outline: 2px solid var(--ring);
-  outline-offset: 2px;
-}
-.form-check:not(.form-switch) .form-check-input[type=&quot;checkbox&quot;]:focus-visible {
-  border-color: var(--ring);
-  outline: none;
-  box-shadow: 0 0 0 2px var(--ring);
-}
-
-.form-check:not(.form-switch) .form-check-input:disabled {
-  cursor: not-allowed;
-  pointer-events: none;
-}
-
-.form-check:not(.form-switch) .form-check-input:disabled + .form-check-label {
-  cursor: not-allowed;
-}
-.form-check:not(.form-switch) .form-check-input[type=&quot;radio&quot;]:disabled,
-.form-check:not(.form-switch)
-  .form-check-input[type=&quot;radio&quot;]:disabled
-  + .form-check-label {
-  opacity: 0.5;
-}
-
-.form-switch .form-check-input:disabled,
-.form-switch .form-check-input:disabled + .form-check-label {
-  cursor: not-allowed;
-  opacity: 0.6;
-}
-
-.form-check-label {
-  color: var(--foreground);
-  cursor: var(--cursor-interaction, default);
-}
-
-.form-switch .form-check-input {
-  position: relative;
-  width: 32px;
-  height: 20px;
-  border: 0;
-  border-radius: var(--radius-full);
-  background: var(--muted);
-  box-shadow: none;
-  transition: background-color 200ms cubic-bezier(0, 0, 0.2, 1);
-}
-
-.form-switch .form-check-input::before {
-  position: absolute;
-  top: 50%;
-  left: 0;
-  width: 16px;
-  height: 16px;
-  box-sizing: border-box;
-  border: 1px solid light-dark(var(--primary-foreground), var(--foreground));
-  border-radius: var(--radius-full);
-  box-shadow: var(--shadow-sm);
-  content: &quot;&quot;;
-  transform: translate(2px, -50%);
-  transition: transform 200ms cubic-bezier(0, 0, 0.2, 1);
-  border-color: #fff;
-  background: #fff;
-}
-
-.form-switch .form-check-input:checked {
-  background: var(--blue);
-}
-
-.form-switch .form-check-input:checked::before {
-  transform: translate(14px, -50%);
-}
-
-.form-switch .form-check-input:focus-visible {
-  box-shadow: 0 0 0 2px var(--ring);
-  outline: none;
-}
-
-.form-range {
-  appearance: none;
-  display: block;
-  width: 100%;
-  flex: 1;
-  margin: 0;
-  padding: 0;
-  border: 0;
-  accent-color: var(--primary);
-  height: calc(12px + 2 * var(--control-spacing, 12px));
-  min-height: calc(12px + 2 * var(--control-spacing, 12px));
-  outline: none;
-  border-radius: var(--radius-full);
-  color: var(--foreground);
-  background: transparent;
-}
-
-.form-range::-webkit-slider-runnable-track {
-  background: var(--form-range-track, var(--border));
-  height: 2px;
-  border-radius: var(--radius-full);
-}
-
-.form-range::-webkit-slider-thumb {
-  appearance: none;
-  width: 20px;
-  height: 20px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-full);
-  margin-top: -9px;
-  border-color: transparent;
-  background: currentColor;
-  box-shadow: var(--shadow-sm);
-}
-
-/* Outline the native track and thumb, preserving the larger input hit area. */
-.form-range:focus-visible::-webkit-slider-runnable-track {
-  outline: 2px auto Highlight;
-  outline-color: -webkit-focus-ring-color;
-}
-
-.form-range::-moz-range-track {
-  background: var(--form-range-track, var(--border));
-  height: 2px;
-  border-radius: var(--radius-full);
-}
-
-.form-range::-moz-range-thumb {
-  width: 20px;
-  height: 20px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-full);
-  border-color: transparent;
-  background: currentColor;
-  box-shadow: var(--shadow-sm);
-}
-
-.form-range:focus-visible::-moz-range-thumb {
-  outline: 2px solid Highlight;
-  outline-offset: 2px;
-}
-
-.form-range:disabled {
-  opacity: 1;
-  cursor: default;
-}
-
-.btn:not(.btn-primary, .viz-tile):is(
-  [aria-pressed=&quot;true&quot;],
-  [aria-selected=&quot;true&quot;],
-  .is-selected
-) {
-  border-color: transparent;
-  color: var(--primary-foreground);
-  background: var(--blue);
-}
-
-.btn.viz-tile:is([aria-pressed=&quot;true&quot;], [aria-selected=&quot;true&quot;], .is-selected) {
-  border-color: var(--primary);
-  box-shadow: inset 0 0 0 1px var(--primary);
-}
-
-.btn:focus-visible,
-.nav-link:focus-visible {
-  outline-offset: 2px;
-  outline: none;
-  box-shadow: 0 0 0 2px var(--ring);
-}
-
-.viz-carousel-controls :is(button, summary):focus-visible {
-  outline: 2px solid var(--ring) !important;
-  outline-offset: 2px !important;
-}
-
-/* Web recipes are the default, including on renderers without inline style queries. */
-@supports (border-radius: if(style(--corner-shape: round): 1px; else: 2px)) {
-  /* Match the host&#x27;s proportional text-sm scale at every text preference. */
-  .tooltip,
-  .viz-badge,
-  .btn,
-  .nav-link,
-  .form-control,
-  .form-select {
-    font-size: if(
-      style(--corner-shape: round): round(
-          nearest,
-          calc(var(--font-size-base) * 14 / 16),
-          1px
-        );
-        else: round(nearest, calc(var(--font-size-base) * 13 / 14), 1px)
-    );
-  }
-
-  .btn-sm {
-    font-size: if(
-      style(--corner-shape: round): round(
-          nearest,
-          calc(var(--font-size-base) * 12 / 16),
-          1px
-        );
-        else: round(nearest, calc(var(--font-size-base) * 12 / 14), 1px)
-    );
-  }
-
-  .btn,
-  .nav-link,
-  .form-select {
-    border-radius: if(
-      style(--corner-shape: round): var(--radius-full); else: var(--radius-lg)
-    );
-  }
-
-  .form-check:not(.form-switch) .form-check-input[type=&quot;checkbox&quot;] {
-    border-radius: if(
-      style(--corner-shape: round): calc(var(--radius-sm) / 2);
-        else: calc(var(--radius-lg) * 0.4)
-    );
-  }
-
-  .tooltip {
-    font-weight: if(
-      style(--corner-shape: round): 600; else: var(--font-weight-normal)
-    );
-  }
-}
-
-@media (pointer: coarse) {
-  .viz-carousel:has(&gt; .viz-carousel-controls) {
-    min-height: calc(76px + var(--viz-carousel-picker-height, 0px));
-    padding-bottom: 76px;
-  }
-
-  .btn,
-  .nav-link,
-  .viz-carousel-controls button,
-  .viz-carousel-picker &gt; summary,
-  .form-control,
-  .form-select {
-    --btn-size: 44px;
-    min-width: 44px;
-    min-height: 44px;
-  }
-
-  /* Keep small-screen WebKit from zooming when a text field receives focus. */
-  .form-control,
-  .form-select {
-    font-size: max(16px, calc(var(--font-size-base) * 14 / 16));
-    font-size: max(
-      16px,
-      round(nearest, calc(var(--font-size-base) * 14 / 16), 1px)
-    );
-  }
-  .form-control:is(
-    [type=&quot;file&quot;],
-    [type=&quot;date&quot;],
-    [type=&quot;datetime-local&quot;],
-    [type=&quot;month&quot;],
-    [type=&quot;week&quot;],
-    [type=&quot;time&quot;],
-    [type=&quot;color&quot;]
-  ) {
-    height: 44px;
-    min-height: 44px;
-    font-size: max(16px, calc(var(--font-size-base) * 14 / 16));
-    font-size: max(
-      16px,
-      round(nearest, calc(var(--font-size-base) * 14 / 16), 1px)
-    );
-  }
-
-  .form-control[type=&quot;file&quot;]::file-selector-button {
-    min-width: 44px;
-    min-height: 44px;
-  }
-
-  .form-control-color[type=&quot;color&quot;] {
-    width: 44px;
-    height: 44px;
-  }
-
-  .form-control:is(
-    [type=&quot;date&quot;],
-    [type=&quot;datetime-local&quot;],
-    [type=&quot;month&quot;],
-    [type=&quot;time&quot;],
-    [type=&quot;week&quot;]
-  ) {
-    min-width: 0;
-    max-width: 100%;
-    padding-block: 8px;
-  }
-
-  .form-check {
-    min-height: 44px;
-    padding-inline: 15px;
-  }
-
-  .form-check-input {
-    position: relative;
-  }
-
-  .form-check-input::after {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    width: 44px;
-    height: 44px;
-    content: &quot;&quot;;
-    transform: translate(-50%, -50%);
-  }
-
-  .form-check-label {
-    display: inline-flex;
-    min-width: 44px;
-    min-height: 44px;
-    align-items: center;
-  }
-
-  .form-range {
-    height: 44px;
-    touch-action: pan-y;
-  }
-}
-
-svg {
-  display: block;
-  max-width: 100%;
-  height: auto;
-}
-
-#widget &gt; svg {
-  width: 100%;
-}
-
-/* Model-authored chart rules can otherwise stretch icons after these styles load. */
-svg.lucide {
-  display: block;
-  width: var(--icon-size) !important;
-  height: var(--icon-size) !important;
-  flex: none;
-  margin: 0 !important;
-  stroke-width: 1.6;
-}
-
-.text-warning,
-.text-destructive {
-  color: var(--destructive);
-}
-
-html&gt;body{padding:0}&lt;/style&gt;
-&lt;/head&gt;
-&lt;body&gt;
-&lt;script type=&quot;application/json&quot; id=&quot;codex-visualization-widget-state&quot;&gt;__CODEX_VISUALIZATION_WIDGET_STATE__&lt;/script&gt;
-&lt;script&gt;(() =&gt; {
-  const root = document.documentElement;
-  const mediaQuery = globalThis.matchMedia(&quot;(prefers-color-scheme: dark)&quot;);
-  const apply = Reflect.apply;
-  const isArray = Array.isArray;
-  const hasOwn = Object.hasOwn;
-  const parentWindow = globalThis.parent;
-  const stringify = JSON.stringify;
-  const parse = JSON.parse;
-  const encode = TextEncoder.prototype.encode.bind(new TextEncoder());
-  const initialStateElement = document.getElementById(
-    &quot;codex-visualization-widget-state&quot;,
-  );
-  const initialGlobals = parse(initialStateElement?.textContent ?? &quot;{}&quot;);
-  initialStateElement?.remove();
-  /** @type {Record&lt;string, unknown&gt; | null} */
-  let state = initialGlobals.widgetState ?? null;
-  const statePersistence = initialGlobals.statePersistence ?? &quot;none&quot;;
-  let nextStateRequestId = 0;
-  /** @type {Map&lt;number, { resolve: () =&gt; void; reject: (error: Error) =&gt; void; timeout: ReturnType&lt;typeof globalThis.setTimeout&gt;; serializedState: string }&gt;} */
-  const pendingStateWrites = new Map();
-  const persistenceError = () =&gt;
-    Object.assign(
-      new Error(&quot;The host could not persist the widget state update&quot;),
-      {
-        code: -32000,
-        data: { code: &quot;widget_state_persistence_failed&quot;, retryable: false },
-      },
-    );
-  /**
-   * @param {object} prototype
-   * @param {string} property
-   */
-  const getPrototypeGetter = (prototype, property) =&gt; {
-    // oxlint-disable-next-line typescript/unbound-method -- invoked through captured Reflect.apply
-    const getter = Object.getOwnPropertyDescriptor(prototype, property)?.get;
-    if (getter == null) {
-      throw new Error(`Missing ${property} getter`);
+  <header class="visual-site-header">
+    <a href="../../">← 返回可视化目录</a>
+    <span>CS302 · 信号与图像</span>
+  </header>
+  <main><div id="fourier-lowpass-explainer">
+  <style>
+    #fourier-lowpass-explainer {
+      --background: #ffffff;
+      --foreground: #1a1c1f;
+      --card: #f5f6f7;
+      --card-foreground: #1a1c1f;
+      --primary: #176b87;
+      --primary-foreground: #ffffff;
+      --muted: #e8ecee;
+      --muted-foreground: #667177;
+      --accent: #e5f2f6;
+      --accent-foreground: #174f62;
+      --border: #d5dade;
+      --viz-series-1: #176b87;
+      --viz-series-2: #c76542;
+      --font-size-base: 15px;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: var(--font-size-base);
+      line-height: 1.5;
     }
-    return getter;
-  };
-  const getMessageData = getPrototypeGetter(MessageEvent.prototype, &quot;data&quot;);
-  const getMessagePorts = getPrototypeGetter(MessageEvent.prototype, &quot;ports&quot;);
-  const getMessageSource = getPrototypeGetter(MessageEvent.prototype, &quot;source&quot;);
-  // oxlint-disable-next-line typescript/unbound-method -- captured before the untrusted fragment runs
-  const addHostMessageListener = MessagePort.prototype.addEventListener;
-  // oxlint-disable-next-line typescript/unbound-method -- captured before the untrusted fragment runs
-  const postHostMessage = MessagePort.prototype.postMessage;
-  // oxlint-disable-next-line typescript/unbound-method -- captured before the untrusted fragment runs
-  const startHostPort = MessagePort.prototype.start;
-  // oxlint-disable-next-line typescript/unbound-method -- captured before the untrusted fragment runs
-  const stopMessagePropagation = Event.prototype.stopImmediatePropagation;
-  /** @type {MessagePort | null} */
-  let hostPort = null;
-  const postToHost = (type, payload) =&gt; {
-    if (hostPort != null) {
-      apply(postHostMessage, hostPort, [{ type, ...payload }]);
+    #fourier-lowpass-explainer *,
+    #fourier-lowpass-explainer *::before,
+    #fourier-lowpass-explainer *::after { box-sizing: border-box; }
+    #fourier-lowpass-explainer h1,
+    #fourier-lowpass-explainer h3,
+    #fourier-lowpass-explainer p { margin: 0; }
+    #fourier-lowpass-explainer h1 { font-size: 26px; line-height: 1.25; font-weight: 650; }
+    #fourier-lowpass-explainer h3 { font-size: 17px; line-height: 1.3; font-weight: 650; }
+    #fourier-lowpass-explainer code {
+      padding: 2px 6px;
+      background: var(--muted);
+      border-radius: 4px;
+      color: var(--foreground);
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
     }
-  };
-  const openExternal = ({ href }) =&gt; {
-    if (globalThis.navigator.userActivation?.isActive === true) {
-      postToHost(&quot;open-external&quot;, { href });
+    #fourier-lowpass-explainer .text-small { font-size: 13px; }
+    #fourier-lowpass-explainer .text-muted { color: var(--muted-foreground); }
+    #fourier-lowpass-explainer .tabular-nums { font-variant-numeric: tabular-nums; }
+    #fourier-lowpass-explainer .btn {
+      min-height: 38px;
+      padding: 7px 12px;
+      border: 1px solid var(--border);
+      border-radius: 7px;
+      background: var(--background);
+      color: var(--foreground);
+      font: inherit;
+      font-weight: 600;
     }
-  };
-  const sendFollowUpMessage = ({ context, prompt, title }) =&gt; {
-    if (globalThis.navigator.userActivation?.isActive === true) {
-      postToHost(&quot;follow-up&quot;, { context, prompt, title });
-    }
-    return Promise.resolve();
-  };
-  /**
-   * @param {Record&lt;string, unknown&gt; | ((previous: Record&lt;string, unknown&gt; | null) =&gt; Record&lt;string, unknown&gt;)} next
-   * @returns {Promise&lt;void&gt;}
-   */
-  const setWidgetState = async (next) =&gt; {
-    const nextState = typeof next === &quot;function&quot; ? next(state) : next;
-    if (
-      nextState == null ||
-      typeof nextState !== &quot;object&quot; ||
-      isArray(nextState)
-    ) {
-      throw new TypeError(&quot;Widget state must be a JSON object&quot;);
-    }
-    const inputState = stringify(
-      nextState,
-      (_key, /** @type {unknown} */ value) =&gt; {
-        if (
-          typeof value === &quot;undefined&quot; ||
-          typeof value === &quot;function&quot; ||
-          typeof value === &quot;symbol&quot; ||
-          (typeof value === &quot;number&quot; &amp;&amp; !Number.isFinite(value))
-        ) {
-          throw new TypeError(&quot;Widget state must be a JSON object&quot;);
-        }
-        return value;
-      },
-    );
-    const parsedState = parse(inputState);
-    if (
-      parsedState == null ||
-      typeof parsedState !== &quot;object&quot; ||
-      isArray(parsedState)
-    ) {
-      throw new TypeError(&quot;Widget state must be a JSON object&quot;);
-    }
-    const storedState = {
-      modelContent: null,
-      privateContent: null,
-      ...parsedState,
-    };
-    const serializedState = stringify(storedState);
-    if (encode(serializedState).length &gt; 16 * 1024) {
-      throw new TypeError(
-        &quot;Widget state must be a JSON object of at most 16 KiB&quot;,
-      );
-    }
-    if (
-      hasOwn(storedState, &quot;imageIds&quot;) &amp;&amp;
-      (!isArray(storedState.imageIds) ||
-        storedState.imageIds.some(
-          (/** @type {unknown} */ id) =&gt; typeof id !== &quot;string&quot;,
-        ))
-    ) {
-      throw new TypeError(&quot;Widget state imageIds must be an array of strings&quot;);
-    }
-    if (storedState.imageIds?.length &gt; 0) {
-      throw Object.assign(
-        new TypeError(&quot;Visualization state does not support image attachments&quot;),
-        { code: -32602, data: { code: &quot;images_unsupported&quot; } },
-      );
-    }
-    state = storedState;
-    globalThis.openai.widgetState = state;
-    globalThis.dispatchEvent(
-      new CustomEvent(&quot;openai:set_globals&quot;, {
-        detail: { globals: { widgetState: state } },
-      }),
-    );
-    if (statePersistence === &quot;none&quot;) {
-      throw persistenceError();
-    }
-    const id = ++nextStateRequestId;
-    return new Promise((resolve, reject) =&gt; {
-      const timeout = globalThis.setTimeout(() =&gt; {
-        pendingStateWrites.delete(id);
-        reject(persistenceError());
-      }, 30_000);
-      pendingStateWrites.set(id, { resolve, reject, timeout, serializedState });
-      postToHost(&quot;widget-state-write&quot;, { id, state: serializedState });
-    });
-  };
-  const syncTheme = () =&gt; {
-    const theme = mediaQuery.matches ? &quot;dark&quot; : &quot;light&quot;;
-    root.dataset.theme = theme;
-    globalThis.openai = {
-      ...globalThis.openai,
-      openExternal,
-      sendFollowUpMessage,
-      setWidgetState,
-      theme,
-      visualizationStyleVariables: {},
-      visualizationTheme: theme,
-      widgetState: state,
-      statePersistence,
-      stateModelContext: &quot;none&quot;,
-    };
-    globalThis.dispatchEvent(
-      new CustomEvent(&quot;openai:set_globals&quot;, {
-        detail: { globals: globalThis.openai },
-      }),
-    );
-  };
-  const sendHeight = () =&gt; {
-    postToHost(&quot;height&quot;, {
-      height: Math.ceil(
-        Math.max(
-          document.body.scrollHeight,
-          document.body.getBoundingClientRect().height,
-        ),
-      ),
-    });
-  };
-
-  globalThis.addEventListener(
-    &quot;message&quot;,
-    (event) =&gt; {
-      const data = apply(getMessageData, event, []);
-      const ports = apply(getMessagePorts, event, []);
-      const source = apply(getMessageSource, event, []);
-      if (
-        hostPort != null ||
-        source !== parentWindow ||
-        typeof data !== &quot;object&quot; ||
-        data?.type !== &quot;codex-visualization-initialize&quot; ||
-        !isArray(ports) ||
-        ports.length !== 1
-      ) {
-        return;
-      }
-      apply(stopMessagePropagation, event, []);
-      const nextHostPort = ports[0];
-      try {
-        apply(addHostMessageListener, nextHostPort, [
-          &quot;message&quot;,
-          (event) =&gt; {
-            const data = apply(getMessageData, event, []);
-            if (typeof data === &quot;object&quot; &amp;&amp; data?.type === &quot;measure&quot;) {
-              sendHeight();
-            } else if (
-              typeof data === &quot;object&quot; &amp;&amp;
-              data?.type === &quot;widget-state-result&quot;
-            ) {
-              /** @type {unknown} */
-              const id = data.id;
-              if (typeof id !== &quot;number&quot;) {
-                return;
-              }
-              const pending = pendingStateWrites.get(id);
-              if (pending != null) {
-                pendingStateWrites.delete(id);
-                globalThis.clearTimeout(pending.timeout);
-                if (data.ok === true) {
-                  pending.resolve();
-                } else {
-                  pending.reject(persistenceError());
-                }
-              }
-            }
-          },
-        ]);
-        apply(startHostPort, nextHostPort, []);
-      } catch {
-        return;
-      }
-      hostPort = nextHostPort;
-      for (const [id, { serializedState }] of pendingStateWrites) {
-        postToHost(&quot;widget-state-write&quot;, { id, state: serializedState });
-      }
-      sendHeight();
-    },
-    { capture: true },
-  );
-  document.currentScript?.remove();
-  mediaQuery.addEventListener(&quot;change&quot;, syncTheme);
-  globalThis.addEventListener(&quot;click&quot;, (event) =&gt; {
-    if (event.defaultPrevented) {
-      return;
-    }
-    let element = null;
-    if (event.target instanceof globalThis.Element) {
-      element = event.target;
-    } else if (event.target instanceof globalThis.Node) {
-      element = event.target.parentElement;
-    }
-    const link = element?.closest(&quot;a[href]&quot;);
-    const href = link?.getAttribute(&quot;href&quot;);
-    if (href == null) {
-      return;
-    }
-    if (href.startsWith(&quot;#&quot;)) {
-      let id;
-      try {
-        id = decodeURIComponent(href.slice(1));
-      } catch {
-        return;
-      }
-      const target = id.length === 0 ? root : document.getElementById(id);
-      if (
-        target == null ||
-        globalThis.navigator.userActivation?.isActive !== true
-      ) {
-        return;
-      }
-      event.preventDefault();
-      postToHost(&quot;scroll-to&quot;, {
-        top: target.getBoundingClientRect().top + globalThis.scrollY,
-      });
-      return;
-    }
-    event.preventDefault();
-    openExternal({ href });
-  });
-  new ResizeObserver(sendHeight).observe(document.body);
-  syncTheme();
-})();
-&lt;/script&gt;
-&lt;div id=&quot;fourier-lowpass-explainer&quot;&gt;
-  &lt;style&gt;
+    #fourier-lowpass-explainer .btn:hover:not(:disabled) { border-color: var(--primary); }
+    #fourier-lowpass-explainer .btn:focus-visible { outline: 3px solid var(--primary); outline-offset: 2px; }
+    #fourier-lowpass-explainer .btn:disabled { opacity: 0.45; }
+    #fourier-lowpass-explainer .btn-primary { background: var(--foreground); color: var(--background); border-color: var(--foreground); }
+    #fourier-lowpass-explainer .form-range { width: 100%; accent-color: var(--primary); }
+    #fourier-lowpass-explainer [data-lucide] { display: none; }
     #fourier-lowpass-explainer {
       display: grid;
       gap: calc(var(--font-size-base) * 1);
@@ -1831,7 +135,7 @@ html&gt;body{padding:0}&lt;/style&gt;
     }
     #fourier-lowpass-explainer .fl-step {
       height: 6px;
-      background: color-mix(in srgb, var(--muted-foreground) 22%, transparent);
+      background: #d8dde0;
     }
     #fourier-lowpass-explainer .fl-step.is-active {
       background: var(--viz-series-1);
@@ -1913,7 +217,7 @@ html&gt;body{padding:0}&lt;/style&gt;
       align-items: flex-start;
       gap: calc(var(--font-size-base) * 0.5);
       padding: calc(var(--font-size-base) * 0.7);
-      background: color-mix(in srgb, var(--viz-series-2) 12%, transparent);
+      background: #faeee9;
       color: var(--foreground);
     }
     #fourier-lowpass-explainer .fl-legend {
@@ -1951,104 +255,104 @@ html&gt;body{padding:0}&lt;/style&gt;
         min-height: 220px;
       }
     }
-  &lt;/style&gt;
+  </style>
 
-  &lt;div class=&quot;fl-title-group&quot;&gt;
-    &lt;h1&gt;从图像到频率，再回到图像&lt;/h1&gt;
-    &lt;p class=&quot;text-muted&quot; id=&quot;fl-step-title&quot;&gt;第 1 步 · 空间域：每个数组位置就是一个像素位置&lt;/p&gt;
-  &lt;/div&gt;
+  <div class="fl-title-group">
+    <h1>从图像到频率，再回到图像</h1>
+    <p class="text-muted" id="fl-step-title">第 1 步 · 空间域：每个数组位置就是一个像素位置</p>
+  </div>
 
-  &lt;div class=&quot;fl-step-track&quot; aria-label=&quot;动画步骤&quot;&gt;
-    &lt;span class=&quot;fl-step is-active&quot;&gt;&lt;/span&gt;&lt;span class=&quot;fl-step&quot;&gt;&lt;/span&gt;&lt;span class=&quot;fl-step&quot;&gt;&lt;/span&gt;
-    &lt;span class=&quot;fl-step&quot;&gt;&lt;/span&gt;&lt;span class=&quot;fl-step&quot;&gt;&lt;/span&gt;&lt;span class=&quot;fl-step&quot;&gt;&lt;/span&gt;
-  &lt;/div&gt;
+  <div class="fl-step-track" aria-label="动画步骤">
+    <span class="fl-step is-active"></span><span class="fl-step"></span><span class="fl-step"></span>
+    <span class="fl-step"></span><span class="fl-step"></span><span class="fl-step"></span>
+  </div>
 
-  &lt;div class=&quot;fl-controls&quot;&gt;
-    &lt;div class=&quot;fl-buttons&quot;&gt;
-      &lt;button class=&quot;btn&quot; id=&quot;fl-prev&quot; type=&quot;button&quot;&gt;&lt;i data-lucide=&quot;chevron-left&quot; aria-hidden=&quot;true&quot;&gt;&lt;/i&gt;上一步&lt;/button&gt;
-      &lt;button class=&quot;btn btn-primary&quot; id=&quot;fl-play&quot; type=&quot;button&quot;&gt;&lt;i data-lucide=&quot;play&quot; aria-hidden=&quot;true&quot;&gt;&lt;/i&gt;&lt;span&gt;播放&lt;/span&gt;&lt;/button&gt;
-      &lt;button class=&quot;btn&quot; id=&quot;fl-next&quot; type=&quot;button&quot;&gt;下一步&lt;i data-lucide=&quot;chevron-right&quot; aria-hidden=&quot;true&quot;&gt;&lt;/i&gt;&lt;/button&gt;
-    &lt;/div&gt;
+  <div class="fl-controls">
+    <div class="fl-buttons">
+      <button class="btn" id="fl-prev" type="button">‹ 上一步</button>
+      <button class="btn btn-primary" id="fl-play" type="button"><span>播放</span></button>
+      <button class="btn" id="fl-next" type="button">下一步 ›</button>
+    </div>
 
-    &lt;label class=&quot;fl-slider-wrap&quot; for=&quot;fl-cutoff&quot;&gt;
-      &lt;span class=&quot;fl-slider-head&quot;&gt;
-        &lt;span&gt;截止频率 &lt;code&gt;cutoff&lt;/code&gt;&lt;/span&gt;
-        &lt;strong class=&quot;tabular-nums&quot;&gt;&lt;span id=&quot;fl-cutoff-value&quot;&gt;0.12&lt;/span&gt; cycles/pixel&lt;/strong&gt;
-      &lt;/span&gt;
-      &lt;input class=&quot;form-range&quot; id=&quot;fl-cutoff&quot; type=&quot;range&quot; min=&quot;0.03&quot; max=&quot;0.40&quot; value=&quot;0.12&quot; step=&quot;0.01&quot;&gt;
-    &lt;/label&gt;
+    <label class="fl-slider-wrap" for="fl-cutoff">
+      <span class="fl-slider-head">
+        <span>截止频率 <code>cutoff</code></span>
+        <strong class="tabular-nums"><span id="fl-cutoff-value">0.12</span> cycles/pixel</strong>
+      </span>
+      <input class="form-range" id="fl-cutoff" type="range" min="0.03" max="0.40" value="0.12" step="0.01">
+    </label>
 
-    &lt;div class=&quot;fl-presets&quot; aria-label=&quot;截止频率预设&quot;&gt;
-      &lt;button class=&quot;btn&quot; type=&quot;button&quot; data-cutoff=&quot;0.03&quot;&gt;0.03&lt;/button&gt;
-      &lt;button class=&quot;btn&quot; type=&quot;button&quot; data-cutoff=&quot;0.08&quot;&gt;0.08&lt;/button&gt;
-      &lt;button class=&quot;btn&quot; type=&quot;button&quot; data-cutoff=&quot;0.20&quot;&gt;0.20&lt;/button&gt;
-    &lt;/div&gt;
-  &lt;/div&gt;
+    <div class="fl-presets" aria-label="截止频率预设">
+      <button class="btn" type="button" data-cutoff="0.03">0.03</button>
+      <button class="btn" type="button" data-cutoff="0.08">0.08</button>
+      <button class="btn" type="button" data-cutoff="0.20">0.20</button>
+    </div>
+  </div>
 
-  &lt;div class=&quot;fl-stage&quot;&gt;
-    &lt;section class=&quot;fl-panel&quot; aria-labelledby=&quot;fl-source-label&quot;&gt;
-      &lt;div class=&quot;fl-panel-head&quot;&gt;
-        &lt;h3 id=&quot;fl-source-label&quot;&gt;空间域&lt;/h3&gt;
-        &lt;code&gt;I[y, x]&lt;/code&gt;
-      &lt;/div&gt;
-      &lt;div class=&quot;fl-canvas-wrap&quot;&gt;&lt;canvas id=&quot;fl-source&quot; role=&quot;img&quot; aria-label=&quot;由大形状、细线和棋盘纹理组成的原始图像&quot;&gt;&lt;/canvas&gt;&lt;/div&gt;
-      &lt;div class=&quot;fl-readout text-small&quot;&gt;
-        &lt;span&gt;数组位置 = 画面位置&lt;/span&gt;
-        &lt;span class=&quot;text-muted&quot;&gt;亮度值说明这个像素有多亮&lt;/span&gt;
-      &lt;/div&gt;
-    &lt;/section&gt;
+  <div class="fl-stage">
+    <section class="fl-panel" aria-labelledby="fl-source-label">
+      <div class="fl-panel-head">
+        <h3 id="fl-source-label">空间域</h3>
+        <code>I[y, x]</code>
+      </div>
+      <div class="fl-canvas-wrap"><canvas id="fl-source" role="img" aria-label="由大形状、细线和棋盘纹理组成的原始图像"></canvas></div>
+      <div class="fl-readout text-small">
+        <span>数组位置 = 画面位置</span>
+        <span class="text-muted">亮度值说明这个像素有多亮</span>
+      </div>
+    </section>
 
-    &lt;div class=&quot;fl-arrow&quot; id=&quot;fl-arrow-forward&quot; aria-hidden=&quot;true&quot;&gt;&lt;i data-lucide=&quot;arrow-right&quot;&gt;&lt;/i&gt;&lt;/div&gt;
+    <div class="fl-arrow" id="fl-arrow-forward" aria-hidden="true">→</div>
 
-    &lt;section class=&quot;fl-panel&quot; aria-labelledby=&quot;fl-frequency-label&quot;&gt;
-      &lt;div class=&quot;fl-panel-head&quot;&gt;
-        &lt;h3 id=&quot;fl-frequency-label&quot;&gt;频率域&lt;/h3&gt;
-        &lt;code id=&quot;fl-frequency-code&quot;&gt;等待 FFT&lt;/code&gt;
-      &lt;/div&gt;
-      &lt;div class=&quot;fl-canvas-wrap&quot;&gt;&lt;canvas id=&quot;fl-frequency&quot; role=&quot;img&quot; aria-label=&quot;当前步骤的二维频率表示&quot;&gt;&lt;/canvas&gt;&lt;/div&gt;
-      &lt;div class=&quot;fl-readout text-small&quot; aria-live=&quot;polite&quot;&gt;
-        &lt;span id=&quot;fl-frequency-detail&quot;&gt;这里不再表示像素位置&lt;/span&gt;
-        &lt;span class=&quot;text-muted&quot; id=&quot;fl-frequency-subdetail&quot;&gt;每个位置将表示一种水平与垂直变化速度&lt;/span&gt;
-      &lt;/div&gt;
-    &lt;/section&gt;
+    <section class="fl-panel" aria-labelledby="fl-frequency-label">
+      <div class="fl-panel-head">
+        <h3 id="fl-frequency-label">频率域</h3>
+        <code id="fl-frequency-code">等待 FFT</code>
+      </div>
+      <div class="fl-canvas-wrap"><canvas id="fl-frequency" role="img" aria-label="当前步骤的二维频率表示"></canvas></div>
+      <div class="fl-readout text-small" aria-live="polite">
+        <span id="fl-frequency-detail">这里不再表示像素位置</span>
+        <span class="text-muted" id="fl-frequency-subdetail">每个位置将表示一种水平与垂直变化速度</span>
+      </div>
+    </section>
 
-    &lt;div class=&quot;fl-arrow&quot; id=&quot;fl-arrow-back&quot; aria-hidden=&quot;true&quot;&gt;&lt;i data-lucide=&quot;arrow-right&quot;&gt;&lt;/i&gt;&lt;/div&gt;
+    <div class="fl-arrow" id="fl-arrow-back" aria-hidden="true">→</div>
 
-    &lt;section class=&quot;fl-panel&quot; aria-labelledby=&quot;fl-result-label&quot;&gt;
-      &lt;div class=&quot;fl-panel-head&quot;&gt;
-        &lt;h3 id=&quot;fl-result-label&quot;&gt;重建空间域&lt;/h3&gt;
-        &lt;code&gt;real(ifft2)&lt;/code&gt;
-      &lt;/div&gt;
-      &lt;div class=&quot;fl-canvas-wrap&quot;&gt;&lt;canvas id=&quot;fl-result&quot; role=&quot;img&quot; aria-label=&quot;应用当前低通滤波器后的重建图像&quot;&gt;&lt;/canvas&gt;&lt;/div&gt;
-      &lt;div class=&quot;fl-readout text-small&quot;&gt;
-        &lt;span id=&quot;fl-retained&quot; class=&quot;tabular-nums&quot;&gt;保留 0% 的频率格点&lt;/span&gt;
-        &lt;span class=&quot;text-muted&quot; id=&quot;fl-blur-label&quot;&gt;尚未应用 mask&lt;/span&gt;
-      &lt;/div&gt;
-    &lt;/section&gt;
-  &lt;/div&gt;
+    <section class="fl-panel" aria-labelledby="fl-result-label">
+      <div class="fl-panel-head">
+        <h3 id="fl-result-label">重建空间域</h3>
+        <code>real(ifft2)</code>
+      </div>
+      <div class="fl-canvas-wrap"><canvas id="fl-result" role="img" aria-label="应用当前低通滤波器后的重建图像"></canvas></div>
+      <div class="fl-readout text-small">
+        <span id="fl-retained" class="tabular-nums">保留 0% 的频率格点</span>
+        <span class="text-muted" id="fl-blur-label">尚未应用 mask</span>
+      </div>
+    </section>
+  </div>
 
-  &lt;div class=&quot;fl-important&quot;&gt;
-    &lt;i data-lucide=&quot;focus&quot; aria-hidden=&quot;true&quot;&gt;&lt;/i&gt;
-    &lt;span id=&quot;fl-main-message&quot;&gt;&lt;strong&gt;先分清两个“位置”：&lt;/strong&gt;左图中心是图像中的一个像素位置；频率中心是 &lt;code&gt;(fx, fy) = (0, 0)&lt;/code&gt;，代表整幅图不变化的平均亮度。&lt;/span&gt;
-  &lt;/div&gt;
+  <div class="fl-important">
+    <span aria-hidden="true">◎</span>
+    <span id="fl-main-message"><strong>先分清两个“位置”：</strong>左图中心是图像中的一个像素位置；频率中心是 <code>(fx, fy) = (0, 0)</code>，代表整幅图不变化的平均亮度。</span>
+  </div>
 
-  &lt;div class=&quot;fl-legend text-small&quot;&gt;
-    &lt;span class=&quot;fl-legend-item&quot;&gt;&lt;span class=&quot;fl-swatch&quot;&gt;&lt;/span&gt;频谱强度&lt;/span&gt;
-    &lt;span class=&quot;fl-legend-item&quot;&gt;&lt;span class=&quot;fl-swatch mask&quot;&gt;&lt;/span&gt;mask 保留范围&lt;/span&gt;
-    &lt;span&gt;圆越小 → 高频删除越多 → 整幅图越模糊&lt;/span&gt;
-  &lt;/div&gt;
+  <div class="fl-legend text-small">
+    <span class="fl-legend-item"><span class="fl-swatch"></span>频谱强度</span>
+    <span class="fl-legend-item"><span class="fl-swatch mask"></span>mask 保留范围</span>
+    <span>圆越小 → 高频删除越多 → 整幅图越模糊</span>
+  </div>
 
-  &lt;script&gt;
-    (() =&gt; {
-      const root = document.getElementById(&#x27;fourier-lowpass-explainer&#x27;);
-      const sourceCanvas = root.querySelector(&#x27;#fl-source&#x27;);
-      const frequencyCanvas = root.querySelector(&#x27;#fl-frequency&#x27;);
-      const resultCanvas = root.querySelector(&#x27;#fl-result&#x27;);
-      const cutoffInput = root.querySelector(&#x27;#fl-cutoff&#x27;);
-      const cutoffValue = root.querySelector(&#x27;#fl-cutoff-value&#x27;);
-      const playButton = root.querySelector(&#x27;#fl-play&#x27;);
-      const playLabel = playButton.querySelector(&#x27;span&#x27;);
-      const stepBars = [...root.querySelectorAll(&#x27;.fl-step&#x27;)];
+  <script>
+    (() => {
+      const root = document.getElementById('fourier-lowpass-explainer');
+      const sourceCanvas = root.querySelector('#fl-source');
+      const frequencyCanvas = root.querySelector('#fl-frequency');
+      const resultCanvas = root.querySelector('#fl-result');
+      const cutoffInput = root.querySelector('#fl-cutoff');
+      const cutoffValue = root.querySelector('#fl-cutoff-value');
+      const playButton = root.querySelector('#fl-play');
+      const playLabel = playButton.querySelector('span');
+      const stepBars = [...root.querySelectorAll('.fl-step')];
       const N = 32;
       let step = 0;
       let timer = null;
@@ -2060,59 +364,59 @@ html&gt;body{padding:0}&lt;/style&gt;
 
       const steps = [
         {
-          title: &#x27;第 1 步 · 空间域：每个数组位置就是一个像素位置&#x27;,
-          code: &#x27;I[y, x]&#x27;,
-          detail: &#x27;尚未进入频率域&#x27;,
-          sub: &#x27;左图中央只代表图像中央的像素，不代表低频&#x27;,
-          message: &#x27;&lt;strong&gt;先分清两个“位置”：&lt;/strong&gt;左图中心是图像中的一个像素位置；频率中心是 &lt;code&gt;(fx, fy) = (0, 0)&lt;/code&gt;，代表整幅图不变化的平均亮度。&#x27;
+          title: '第 1 步 · 空间域：每个数组位置就是一个像素位置',
+          code: 'I[y, x]',
+          detail: '尚未进入频率域',
+          sub: '左图中央只代表图像中央的像素，不代表低频',
+          message: '<strong>先分清两个“位置”：</strong>左图中心是图像中的一个像素位置；频率中心是 <code>(fx, fy) = (0, 0)</code>，代表整幅图不变化的平均亮度。'
         },
         {
-          title: &#x27;第 2 步 · fft2：把整幅图分解为不同快慢的二维变化&#x27;,
-          code: &#x27;fft2(I)&#x27;,
-          detail: &#x27;零频率暂时在左上角&#x27;,
-          sub: &#x27;低频分散在边界附近，高频更靠中部&#x27;,
-          message: &#x27;&lt;strong&gt;FFT 后，数组位置的含义变了：&lt;/strong&gt;它不再对应画面中的某个像素，而对应一种遍布整幅图的波纹。每个复数记录这种波纹的幅度和相位。&#x27;
+          title: '第 2 步 · fft2：把整幅图分解为不同快慢的二维变化',
+          code: 'fft2(I)',
+          detail: '零频率暂时在左上角',
+          sub: '低频分散在边界附近，高频更靠中部',
+          message: '<strong>FFT 后，数组位置的含义变了：</strong>它不再对应画面中的某个像素，而对应一种遍布整幅图的波纹。每个复数记录这种波纹的幅度和相位。'
         },
         {
-          title: &#x27;第 3 步 · fftshift：只重排频谱，把零频率移到中央&#x27;,
-          code: &#x27;fftshift(FFT)&#x27;,
-          detail: &#x27;中心十字处是 (fx, fy) = (0, 0)&#x27;,
-          sub: &#x27;离中心越远，空间变化越快&#x27;,
-          message: &#x27;&lt;strong&gt;“频率中心”不是图像中心：&lt;/strong&gt;它只是频率坐标的原点。中心代表恒定亮度；向外走代表更快的明暗变化，也就是更细的纹理和更锐利的边缘。&#x27;
+          title: '第 3 步 · fftshift：只重排频谱，把零频率移到中央',
+          code: 'fftshift(FFT)',
+          detail: '中心十字处是 (fx, fy) = (0, 0)',
+          sub: '离中心越远，空间变化越快',
+          message: '<strong>“频率中心”不是图像中心：</strong>它只是频率坐标的原点。中心代表恒定亮度；向外走代表更快的明暗变化，也就是更细的纹理和更锐利的边缘。'
         },
         {
-          title: &#x27;第 4 步 · 创建 mask：用到频率中心的距离决定保留范围&#x27;,
-          code: &#x27;sqrt(fx² + fy²) ≤ cutoff&#x27;,
-          detail: &#x27;圆内 True（保留），圆外 False（删除）&#x27;,
-          sub: &#x27;拖动 cutoff，观察圆的半径变化&#x27;,
-          message: &#x27;&lt;strong&gt;mask 的圆心是频率原点：&lt;/strong&gt;它不是在图像中央盖一层模糊。圆形 mask 选择的是“哪些变化速度”可用于重建，因此会同时影响整幅图的所有位置。&#x27;
+          title: '第 4 步 · 创建 mask：用到频率中心的距离决定保留范围',
+          code: 'sqrt(fx² + fy²) ≤ cutoff',
+          detail: '圆内 True（保留），圆外 False（删除）',
+          sub: '拖动 cutoff，观察圆的半径变化',
+          message: '<strong>mask 的圆心是频率原点：</strong>它不是在图像中央盖一层模糊。圆形 mask 选择的是“哪些变化速度”可用于重建，因此会同时影响整幅图的所有位置。'
         },
         {
-          title: &#x27;第 5 步 · 频谱乘以 mask：圆外频率变成 0&#x27;,
-          code: &#x27;FFTcentered × mask&#x27;,
-          detail: &#x27;保留下来的复数仍含幅度与相位&#x27;,
-          sub: &#x27;被删掉的高频无法参与重建&#x27;,
-          message: &#x27;&lt;strong&gt;乘法发生在同一频率坐标上：&lt;/strong&gt;&lt;code&gt;True&lt;/code&gt; 相当于乘 1，频率保留；&lt;code&gt;False&lt;/code&gt; 相当于乘 0，频率删除。小圆会删除更多细线、纹理和尖锐边缘。&#x27;
+          title: '第 5 步 · 频谱乘以 mask：圆外频率变成 0',
+          code: 'FFTcentered × mask',
+          detail: '保留下来的复数仍含幅度与相位',
+          sub: '被删掉的高频无法参与重建',
+          message: '<strong>乘法发生在同一频率坐标上：</strong><code>True</code> 相当于乘 1，频率保留；<code>False</code> 相当于乘 0，频率删除。小圆会删除更多细线、纹理和尖锐边缘。'
         },
         {
-          title: &#x27;第 6 步 · ifftshift + ifft2：把保留的波纹重新叠加成图像&#x27;,
-          code: &#x27;real(ifft2(ifftshift(...)))&#x27;,
-          detail: &#x27;右图重新变成像素数组&#x27;,
-          sub: &#x27;低频仍覆盖整幅图，所以模糊也是全局的&#x27;,
-          message: &#x27;&lt;strong&gt;逆变换就是重新叠加：&lt;/strong&gt;完整频谱能精确还原原图；删除高频后，只能用缓慢变化的波纹近似原图，所以细节消失、边缘变软。&#x27;
+          title: '第 6 步 · ifftshift + ifft2：把保留的波纹重新叠加成图像',
+          code: 'real(ifft2(ifftshift(...)))',
+          detail: '右图重新变成像素数组',
+          sub: '低频仍覆盖整幅图，所以模糊也是全局的',
+          message: '<strong>逆变换就是重新叠加：</strong>完整频谱能精确还原原图；删除高频后，只能用缓慢变化的波纹近似原图，所以细节消失、边缘变软。'
         }
       ];
 
       function makeSource() {
         const a = new Float64Array(N * N);
-        for (let y = 0; y &lt; N; y++) {
-          for (let x = 0; x &lt; N; x++) {
+        for (let y = 0; y < N; y++) {
+          for (let x = 0; x < N; x++) {
             let v = 0.08 + 0.18 * (x / (N - 1));
-            if (x &gt;= 4 &amp;&amp; x &lt;= 13 &amp;&amp; y &gt;= 5 &amp;&amp; y &lt;= 25) v = 0.78;
-            if (x &gt;= 13 &amp;&amp; x &lt;= 20 &amp;&amp; y &gt;= 5 &amp;&amp; y &lt;= 9) v = 0.78;
-            if (x &gt;= 13 &amp;&amp; x &lt;= 18 &amp;&amp; y &gt;= 14 &amp;&amp; y &lt;= 18) v = 0.78;
-            if (x &gt;= 21 &amp;&amp; y &gt;= 19 &amp;&amp; ((x + y) % 2 === 0)) v = 0.95;
-            if (x &gt;= 22 &amp;&amp; x &lt;= 29 &amp;&amp; y &gt;= 3 &amp;&amp; y &lt;= 4) v = 1;
+            if (x >= 4 && x <= 13 && y >= 5 && y <= 25) v = 0.78;
+            if (x >= 13 && x <= 20 && y >= 5 && y <= 9) v = 0.78;
+            if (x >= 13 && x <= 18 && y >= 14 && y <= 18) v = 0.78;
+            if (x >= 21 && y >= 19 && ((x + y) % 2 === 0)) v = 0.95;
+            if (x >= 22 && x <= 29 && y >= 3 && y <= 4) v = 1;
             a[y * N + x] = v;
           }
         }
@@ -2123,9 +427,9 @@ html&gt;body{padding:0}&lt;/style&gt;
         const outRe = new Float64Array(N);
         const outIm = new Float64Array(N);
         const sign = inverse ? 1 : -1;
-        for (let k = 0; k &lt; N; k++) {
+        for (let k = 0; k < N; k++) {
           let sr = 0, si = 0;
-          for (let n = 0; n &lt; N; n++) {
+          for (let n = 0; n < N; n++) {
             const angle = sign * 2 * Math.PI * k * n / N;
             const c = Math.cos(angle), s = Math.sin(angle);
             sr += re[n] * c - im[n] * s;
@@ -2141,28 +445,28 @@ html&gt;body{padding:0}&lt;/style&gt;
       function fft2(input, inverse) {
         const rowRe = new Float64Array(N * N);
         const rowIm = new Float64Array(N * N);
-        for (let y = 0; y &lt; N; y++) {
+        for (let y = 0; y < N; y++) {
           const re = new Float64Array(N), im = new Float64Array(N);
-          for (let x = 0; x &lt; N; x++) {
+          for (let x = 0; x < N; x++) {
             const value = input[y * N + x];
-            re[x] = typeof value === &#x27;number&#x27; ? value : value.re;
-            im[x] = typeof value === &#x27;number&#x27; ? 0 : value.im;
+            re[x] = typeof value === 'number' ? value : value.re;
+            im[x] = typeof value === 'number' ? 0 : value.im;
           }
           const [or, oi] = dft1d(re, im, inverse);
-          for (let x = 0; x &lt; N; x++) {
+          for (let x = 0; x < N; x++) {
             rowRe[y * N + x] = or[x];
             rowIm[y * N + x] = oi[x];
           }
         }
         const output = new Array(N * N);
-        for (let x = 0; x &lt; N; x++) {
+        for (let x = 0; x < N; x++) {
           const re = new Float64Array(N), im = new Float64Array(N);
-          for (let y = 0; y &lt; N; y++) {
+          for (let y = 0; y < N; y++) {
             re[y] = rowRe[y * N + x];
             im[y] = rowIm[y * N + x];
           }
           const [or, oi] = dft1d(re, im, inverse);
-          for (let y = 0; y &lt; N; y++) output[y * N + x] = { re: or[y], im: oi[y] };
+          for (let y = 0; y < N; y++) output[y * N + x] = { re: or[y], im: oi[y] };
         }
         return output;
       }
@@ -2170,8 +474,8 @@ html&gt;body{padding:0}&lt;/style&gt;
       function shiftComplex(input) {
         const out = new Array(N * N);
         const half = N / 2;
-        for (let y = 0; y &lt; N; y++) {
-          for (let x = 0; x &lt; N; x++) {
+        for (let y = 0; y < N; y++) {
+          for (let x = 0; x < N; x++) {
             out[y * N + x] = input[((y + half) % N) * N + ((x + half) % N)];
           }
         }
@@ -2181,11 +485,11 @@ html&gt;body{padding:0}&lt;/style&gt;
       function buildMask() {
         const mask = new Float64Array(N * N);
         let kept = 0;
-        for (let y = 0; y &lt; N; y++) {
+        for (let y = 0; y < N; y++) {
           const fy = (y - N / 2) / N;
-          for (let x = 0; x &lt; N; x++) {
+          for (let x = 0; x < N; x++) {
             const fx = (x - N / 2) / N;
-            const keep = Math.hypot(fx, fy) &lt;= cutoff;
+            const keep = Math.hypot(fx, fy) <= cutoff;
             mask[y * N + x] = keep ? 1 : 0;
             if (keep) kept++;
           }
@@ -2195,27 +499,27 @@ html&gt;body{padding:0}&lt;/style&gt;
 
       function updateReconstruction() {
         const { mask, kept } = buildMask();
-        const filteredShifted = shiftedSpectrum.map((z, i) =&gt; ({ re: z.re * mask[i], im: z.im * mask[i] }));
+        const filteredShifted = shiftedSpectrum.map((z, i) => ({ re: z.re * mask[i], im: z.im * mask[i] }));
         const unshifted = shiftComplex(filteredShifted);
         const inverse = fft2(unshifted, true);
         reconstruction = new Float64Array(N * N);
-        for (let i = 0; i &lt; reconstruction.length; i++) reconstruction[i] = inverse[i].re;
+        for (let i = 0; i < reconstruction.length; i++) reconstruction[i] = inverse[i].re;
         const retainedPercent = kept / (N * N) * 100;
-        const retainedText = retainedPercent &lt; 1 ? retainedPercent.toFixed(1) : Math.round(retainedPercent).toString();
-        root.querySelector(&#x27;#fl-retained&#x27;).textContent = `保留 ${retainedText}% 的频率格点`;
-        const blur = cutoff &lt;= 0.05 ? &#x27;最强模糊：只剩非常缓慢的变化&#x27; : cutoff &lt;= 0.11 ? &#x27;明显模糊：细纹和锐利边缘先消失&#x27; : cutoff &lt;= 0.22 ? &#x27;较多细节被保留&#x27; : &#x27;接近原图：包含更多高频细节&#x27;;
-        root.querySelector(&#x27;#fl-blur-label&#x27;).textContent = blur;
+        const retainedText = retainedPercent < 1 ? retainedPercent.toFixed(1) : Math.round(retainedPercent).toString();
+        root.querySelector('#fl-retained').textContent = `保留 ${retainedText}% 的频率格点`;
+        const blur = cutoff <= 0.05 ? '最强模糊：只剩非常缓慢的变化' : cutoff <= 0.11 ? '明显模糊：细纹和锐利边缘先消失' : cutoff <= 0.22 ? '较多细节被保留' : '接近原图：包含更多高频细节';
+        root.querySelector('#fl-blur-label').textContent = blur;
       }
 
       function theme() {
         const s = getComputedStyle(root);
         return {
-          foreground: s.getPropertyValue(&#x27;--foreground&#x27;).trim(),
-          muted: s.getPropertyValue(&#x27;--muted-foreground&#x27;).trim(),
-          card: s.getPropertyValue(&#x27;--card&#x27;).trim(),
-          series1: s.getPropertyValue(&#x27;--viz-series-1&#x27;).trim(),
-          series2: s.getPropertyValue(&#x27;--viz-series-2&#x27;).trim(),
-          border: s.getPropertyValue(&#x27;--border&#x27;).trim()
+          foreground: s.getPropertyValue('--foreground').trim(),
+          muted: s.getPropertyValue('--muted-foreground').trim(),
+          card: s.getPropertyValue('--card').trim(),
+          series1: s.getPropertyValue('--viz-series-1').trim(),
+          series2: s.getPropertyValue('--viz-series-2').trim(),
+          border: s.getPropertyValue('--border').trim()
         };
       }
 
@@ -2227,7 +531,7 @@ html&gt;body{padding:0}&lt;/style&gt;
           canvas.width = size;
           canvas.height = size;
         }
-        const ctx = canvas.getContext(&#x27;2d&#x27;);
+        const ctx = canvas.getContext('2d');
         ctx.imageSmoothingEnabled = false;
         return { ctx, size };
       }
@@ -2238,8 +542,8 @@ html&gt;body{padding:0}&lt;/style&gt;
         ctx.fillStyle = colors.card;
         ctx.fillRect(0, 0, size, size);
         const cell = size / N;
-        for (let y = 0; y &lt; N; y++) {
-          for (let x = 0; x &lt; N; x++) {
+        for (let y = 0; y < N; y++) {
+          for (let x = 0; x < N; x++) {
             let v = Math.max(0, Math.min(1, values[y * N + x]));
             if (dimBeforeFilter) v = 0.15 + v * 0.25;
             const g = Math.round(v * 255);
@@ -2256,25 +560,25 @@ html&gt;body{padding:0}&lt;/style&gt;
         ctx.fillRect(0, 0, size, size);
         if (step === 0) {
           ctx.fillStyle = colors.muted;
-          ctx.textAlign = &#x27;center&#x27;;
-          ctx.textBaseline = &#x27;middle&#x27;;
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
           ctx.font = `${Math.max(12, size * 0.045)}px system-ui`;
-          ctx.fillText(&#x27;等待 fft2&#x27;, size / 2, size / 2);
+          ctx.fillText('等待 fft2', size / 2, size / 2);
           return;
         }
         const data = step === 1 ? spectrum : shiftedSpectrum;
-        const mags = data.map(z =&gt; Math.log1p(Math.hypot(z.re, z.im)));
+        const mags = data.map(z => Math.log1p(Math.hypot(z.re, z.im)));
         const max = Math.max(...mags);
         const { mask } = buildMask();
         const cell = size / N;
-        for (let y = 0; y &lt; N; y++) {
-          for (let x = 0; x &lt; N; x++) {
+        for (let y = 0; y < N; y++) {
+          for (let x = 0; x < N; x++) {
             const i = y * N + x;
             if (step === 3) {
               ctx.fillStyle = mask[i] ? colors.series2 : colors.card;
             } else {
               let v = mags[i] / max;
-              if (step &gt;= 4 &amp;&amp; !mask[i]) v *= 0.05;
+              if (step >= 4 && !mask[i]) v *= 0.05;
               const g = Math.round(18 + v * 225);
               ctx.fillStyle = `rgb(${g},${g},${g})`;
             }
@@ -2282,7 +586,7 @@ html&gt;body{padding:0}&lt;/style&gt;
           }
         }
         ctx.save();
-        ctx.strokeStyle = step &gt;= 3 ? colors.series2 : colors.series1;
+        ctx.strokeStyle = step >= 3 ? colors.series2 : colors.series1;
         ctx.lineWidth = Math.max(2, size / 160);
         const centerX = step === 1 ? 0 : size / 2;
         const centerY = step === 1 ? 0 : size / 2;
@@ -2292,7 +596,7 @@ html&gt;body{padding:0}&lt;/style&gt;
         ctx.moveTo(Math.max(0, centerX - size * 0.045), centerY);
         ctx.lineTo(Math.min(size, centerX + size * 0.045), centerY);
         ctx.stroke();
-        if (step &gt;= 3) {
+        if (step >= 3) {
           ctx.beginPath();
           ctx.arc(size / 2, size / 2, cutoff * size, 0, Math.PI * 2);
           ctx.stroke();
@@ -2304,18 +608,18 @@ html&gt;body{padding:0}&lt;/style&gt;
         updateReconstruction();
         drawPixels(sourceCanvas, source, false);
         drawFrequency();
-        drawPixels(resultCanvas, step &gt;= 4 ? reconstruction : source, step &lt; 4);
+        drawPixels(resultCanvas, step >= 4 ? reconstruction : source, step < 4);
         const current = steps[step];
-        root.querySelector(&#x27;#fl-step-title&#x27;).textContent = current.title;
-        root.querySelector(&#x27;#fl-frequency-code&#x27;).textContent = current.code;
-        root.querySelector(&#x27;#fl-frequency-detail&#x27;).textContent = current.detail;
-        root.querySelector(&#x27;#fl-frequency-subdetail&#x27;).textContent = current.sub;
-        root.querySelector(&#x27;#fl-main-message&#x27;).innerHTML = current.message;
-        root.querySelector(&#x27;#fl-arrow-forward&#x27;).classList.toggle(&#x27;is-active&#x27;, step &gt;= 1);
-        root.querySelector(&#x27;#fl-arrow-back&#x27;).classList.toggle(&#x27;is-active&#x27;, step &gt;= 5);
-        stepBars.forEach((bar, index) =&gt; bar.classList.toggle(&#x27;is-active&#x27;, index &lt;= step));
-        root.querySelector(&#x27;#fl-prev&#x27;).disabled = step === 0;
-        root.querySelector(&#x27;#fl-next&#x27;).disabled = step === steps.length - 1;
+        root.querySelector('#fl-step-title').textContent = current.title;
+        root.querySelector('#fl-frequency-code').textContent = current.code;
+        root.querySelector('#fl-frequency-detail').textContent = current.detail;
+        root.querySelector('#fl-frequency-subdetail').textContent = current.sub;
+        root.querySelector('#fl-main-message').innerHTML = current.message;
+        root.querySelector('#fl-arrow-forward').classList.toggle('is-active', step >= 1);
+        root.querySelector('#fl-arrow-back').classList.toggle('is-active', step >= 5);
+        stepBars.forEach((bar, index) => bar.classList.toggle('is-active', index <= step));
+        root.querySelector('#fl-prev').disabled = step === 0;
+        root.querySelector('#fl-next').disabled = step === steps.length - 1;
       }
 
       function setStep(next) {
@@ -2327,22 +631,16 @@ html&gt;body{padding:0}&lt;/style&gt;
       function stop() {
         if (timer) clearInterval(timer);
         timer = null;
-        playLabel.textContent = &#x27;播放&#x27;;
-        const icon = playButton.querySelector(&#x27;svg&#x27;);
-        if (icon) icon.outerHTML = &#x27;&lt;i data-lucide=&quot;play&quot; aria-hidden=&quot;true&quot;&gt;&lt;/i&gt;&#x27;;
-        if (window.lucide) lucide.createIcons({ attrs: { width: 16, height: 16 } });
+        playLabel.textContent = '播放';
       }
 
       function play() {
         if (timer) { stop(); return; }
         if (step === steps.length - 1) step = 0;
         draw();
-        playLabel.textContent = &#x27;暂停&#x27;;
-        const icon = playButton.querySelector(&#x27;svg, i&#x27;);
-        if (icon) icon.outerHTML = &#x27;&lt;i data-lucide=&quot;pause&quot; aria-hidden=&quot;true&quot;&gt;&lt;/i&gt;&#x27;;
-        if (window.lucide) lucide.createIcons({ attrs: { width: 16, height: 16 } });
-        timer = setInterval(() =&gt; {
-          if (step &gt;= steps.length - 1) { stop(); return; }
+        playLabel.textContent = '暂停';
+        timer = setInterval(() => {
+          if (step >= steps.length - 1) { stop(); return; }
           step++;
           draw();
         }, 1800);
@@ -2353,12 +651,12 @@ html&gt;body{padding:0}&lt;/style&gt;
         window.openai.setWidgetState({
           modelContent: { cutoff, step },
           privateContent: null
-        }).catch(() =&gt; {});
+        }).catch(() => {});
       }
 
       function restoreState(state) {
         const saved = state?.modelContent || state;
-        if (!saved || typeof saved !== &#x27;object&#x27;) return;
+        if (!saved || typeof saved !== 'object') return;
         if (Number.isFinite(Number(saved.cutoff))) {
           cutoff = Math.max(0.03, Math.min(0.40, Number(saved.cutoff)));
           cutoffInput.value = cutoff.toFixed(2);
@@ -2368,15 +666,15 @@ html&gt;body{padding:0}&lt;/style&gt;
       }
 
       restoreState(window.openai?.widgetState);
-      cutoffInput.addEventListener(&#x27;input&#x27;, () =&gt; {
+      cutoffInput.addEventListener('input', () => {
         cutoff = Number(cutoffInput.value);
         cutoffValue.textContent = cutoff.toFixed(2);
-        if (step &lt; 3) step = 3;
+        if (step < 3) step = 3;
         draw();
       });
-      cutoffInput.addEventListener(&#x27;change&#x27;, saveState);
-      root.querySelectorAll(&#x27;[data-cutoff]&#x27;).forEach(button =&gt; {
-        button.addEventListener(&#x27;click&#x27;, () =&gt; {
+      cutoffInput.addEventListener('change', saveState);
+      root.querySelectorAll('[data-cutoff]').forEach(button => {
+        button.addEventListener('click', () => {
           cutoff = Number(button.dataset.cutoff);
           cutoffInput.value = cutoff.toFixed(2);
           cutoffValue.textContent = cutoff.toFixed(2);
@@ -2385,889 +683,26 @@ html&gt;body{padding:0}&lt;/style&gt;
           saveState();
         });
       });
-      root.querySelector(&#x27;#fl-prev&#x27;).addEventListener(&#x27;click&#x27;, () =&gt; { stop(); setStep(step - 1); });
-      root.querySelector(&#x27;#fl-next&#x27;).addEventListener(&#x27;click&#x27;, () =&gt; { stop(); setStep(step + 1); });
-      playButton.addEventListener(&#x27;click&#x27;, play);
-      window.addEventListener(&#x27;openai:set_globals&#x27;, event =&gt; {
+      root.querySelector('#fl-prev').addEventListener('click', () => { stop(); setStep(step - 1); });
+      root.querySelector('#fl-next').addEventListener('click', () => { stop(); setStep(step + 1); });
+      playButton.addEventListener('click', play);
+      window.addEventListener('openai:set_globals', event => {
         restoreState(event.detail?.globals?.widgetState);
         draw();
       });
 
-      const observer = new ResizeObserver(() =&gt; draw());
-      observer.observe(root);
-      const themeObserver = new MutationObserver(() =&gt; draw());
-      themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: [&#x27;class&#x27;, &#x27;data-theme&#x27;, &#x27;style&#x27;] });
+      if ('ResizeObserver' in window) {
+        const observer = new ResizeObserver(() => draw());
+        observer.observe(root);
+      } else {
+        window.addEventListener('resize', draw);
+      }
+      const themeObserver = new MutationObserver(() => draw());
+      themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['class', 'data-theme', 'style'] });
       draw();
     })();
-  &lt;/script&gt;
-&lt;/div&gt;
-
-&lt;script src=&quot;https://unpkg.com/@floating-ui/core@1.7.3/dist/floating-ui.core.umd.min.js&quot;&gt;&lt;/script&gt;
-&lt;script src=&quot;https://unpkg.com/@floating-ui/dom@1.7.4/dist/floating-ui.dom.umd.min.js&quot;&gt;&lt;/script&gt;
-&lt;script&gt;
-(() =&gt; {
-  if (window.FloatingUIDOM == null) {
-    return;
-  }
-  const { autoUpdate, computePosition, flip, offset, shift, size } =
-    window.FloatingUIDOM;
-  const tooltipPlacements = new Set([&quot;top&quot;, &quot;right&quot;, &quot;bottom&quot;, &quot;left&quot;]);
-  const tooltipId = `codex-visualization-tooltip-${
-    window.crypto?.randomUUID?.() ?? Date.now().toString(36)
-  }`;
-  const tooltipGap = 5;
-  const hoverDelay = 700;
-  const skipDelay = 300;
-  let activeTrigger = null;
-  let pendingTrigger = null;
-  let tooltip = null;
-  let openTimeout = null;
-  let autoUpdateCleanup = null;
-  let positionRequest = 0;
-  let skipDelayUntil = 0;
-  let lastPointerWasTouch = false;
-  let pinnedByTouch = false;
-
-  const getTrigger = (event) =&gt; {
-    for (const target of event.composedPath()) {
-      if (target?.nodeType === Node.ELEMENT_NODE) {
-        const trigger = target.closest(&quot;[data-tooltip]&quot;);
-        if (trigger) return trigger;
-      }
-    }
-    return null;
-  };
-  const containsTarget = (trigger, target) =&gt;
-    target?.nodeType != null &amp;&amp; trigger.contains(target);
-  const getContent = (trigger) =&gt;
-    trigger.getAttribute(&quot;data-tooltip&quot;)?.trim() ?? &quot;&quot;;
-  const getPlacement = (trigger) =&gt; {
-    const placement = trigger.getAttribute(&quot;data-tooltip-placement&quot;);
-    return tooltipPlacements.has(placement) ? placement : &quot;top&quot;;
-  };
-  const getTooltip = () =&gt; {
-    if (tooltip == null) {
-      tooltip = document.createElement(&quot;div&quot;);
-      tooltip.id = tooltipId;
-      tooltip.className = &quot;tooltip&quot;;
-      tooltip.setAttribute(&quot;role&quot;, &quot;tooltip&quot;);
-    }
-    return tooltip;
-  };
-  const setDescribedBy = (trigger, described) =&gt; {
-    const ids = new Set(
-      (trigger.getAttribute(&quot;aria-describedby&quot;) ?? &quot;&quot;)
-        .split(/\s+/)
-        .filter(Boolean),
-    );
-    if (described) {
-      ids.add(tooltipId);
-    } else {
-      ids.delete(tooltipId);
-    }
-    if (ids.size === 0) {
-      trigger.removeAttribute(&quot;aria-describedby&quot;);
-    } else {
-      trigger.setAttribute(&quot;aria-describedby&quot;, [...ids].join(&quot; &quot;));
-    }
-  };
-  const clearOpenTimeout = () =&gt; {
-    if (openTimeout != null) {
-      window.clearTimeout(openTimeout);
-      openTimeout = null;
-    }
-    pendingTrigger = null;
-  };
-  const closeTooltip = (activateSkipDelay = true) =&gt; {
-    clearOpenTimeout();
-    pinnedByTouch = false;
-    positionRequest += 1;
-    autoUpdateCleanup?.();
-    autoUpdateCleanup = null;
-    if (activeTrigger == null) {
-      return;
-    }
-    setDescribedBy(activeTrigger, false);
-    activeTrigger = null;
-    tooltip?.remove();
-    if (activateSkipDelay) {
-      skipDelayUntil = Date.now() + skipDelay;
-    }
-  };
-  const updatePosition = (trigger, floating) =&gt; {
-    const request = ++positionRequest;
-    void computePosition(trigger, floating, {
-      middleware: [
-        offset(tooltipGap),
-        flip({ padding: tooltipGap }),
-        shift({ padding: tooltipGap }),
-        size({
-          padding: tooltipGap,
-          apply({ availableHeight, availableWidth, elements }) {
-            elements.floating.style.setProperty(
-              &quot;--tooltip-available-width&quot;,
-              `${Math.max(0, availableWidth)}px`,
-            );
-            elements.floating.style.setProperty(
-              &quot;--tooltip-available-height&quot;,
-              `${Math.max(0, availableHeight)}px`,
-            );
-          },
-        }),
-      ],
-      placement: getPlacement(trigger),
-      strategy: &quot;fixed&quot;,
-    })
-      .then(({ x, y }) =&gt; {
-        if (activeTrigger !== trigger || request !== positionRequest) {
-          return;
-        }
-        const scale = window.devicePixelRatio || 1;
-        floating.style.transform = `translate(${Math.round(x * scale) / scale}px, ${Math.round(y * scale) / scale}px)`;
-        floating.style.visibility = &quot;visible&quot;;
-      })
-      .catch(() =&gt; {
-        if (activeTrigger === trigger &amp;&amp; request === positionRequest) {
-          closeTooltip(false);
-        }
-      });
-  };
-  const openTooltip = (trigger) =&gt; {
-    const content = getContent(trigger);
-    if (!trigger.isConnected || content.length === 0) {
-      return;
-    }
-    clearOpenTimeout();
-    if (activeTrigger === trigger) {
-      return;
-    }
-    closeTooltip();
-    const floating = getTooltip();
-    floating.textContent = content;
-    floating.style.visibility = &quot;hidden&quot;;
-    floating.style.transform = &quot;translate(0, 0)&quot;;
-    document.body.appendChild(floating);
-    activeTrigger = trigger;
-    setDescribedBy(trigger, true);
-    autoUpdateCleanup = autoUpdate(trigger, floating, () =&gt; {
-      updatePosition(trigger, floating);
-    });
-  };
-  const requestOpen = (trigger, immediate = false) =&gt; {
-    if (
-      getContent(trigger).length === 0 ||
-      activeTrigger === trigger ||
-      pendingTrigger === trigger
-    ) {
-      return;
-    }
-    clearOpenTimeout();
-    pendingTrigger = trigger;
-    const delay =
-      immediate || activeTrigger != null || Date.now() &lt; skipDelayUntil
-        ? 0
-        : hoverDelay;
-    if (delay === 0) {
-      openTooltip(trigger);
-      return;
-    }
-    openTimeout = window.setTimeout(() =&gt; {
-      openTimeout = null;
-      pendingTrigger = null;
-      openTooltip(trigger);
-    }, delay);
-  };
-  const handlePointerOpen = (event) =&gt; {
-    if (event.pointerType === &quot;touch&quot;) {
-      return;
-    }
-    const trigger = getTrigger(event);
-    if (trigger == null || containsTarget(trigger, event.relatedTarget)) {
-      return;
-    }
-    requestOpen(trigger);
-  };
-  const handlePointer = (event) =&gt; {
-    lastPointerWasTouch =
-      event.type === &quot;pointerdown&quot; &amp;&amp; event.pointerType === &quot;touch&quot;;
-  };
-  const handleTouchClick = (event) =&gt; {
-    const isTouch = event.pointerType === &quot;touch&quot; || lastPointerWasTouch;
-    lastPointerWasTouch = false;
-    if (!isTouch || event.detail === 0) {
-      return;
-    }
-    const trigger = getTrigger(event);
-    if (
-      trigger == null ||
-      !trigger.isConnected ||
-      getContent(trigger).length === 0 ||
-      (pinnedByTouch &amp;&amp; activeTrigger === trigger)
-    ) {
-      if (pinnedByTouch) {
-        closeTooltip();
-      }
-      return;
-    }
-    openTooltip(trigger);
-    pinnedByTouch = activeTrigger === trigger;
-    window.setTimeout(() =&gt; {
-      if (activeTrigger === trigger &amp;&amp; !trigger.isConnected) {
-        closeTooltip(false);
-      }
-    }, 0);
-  };
-  const handleLeave = (event) =&gt; {
-    if (pinnedByTouch) {
-      return;
-    }
-    const trigger = getTrigger(event);
-    if (trigger == null || containsTarget(trigger, event.relatedTarget)) {
-      return;
-    }
-    if (activeTrigger === trigger || pendingTrigger === trigger) {
-      closeTooltip();
-    }
-  };
-  const handleFocusIn = (event) =&gt; {
-    const trigger = getTrigger(event);
-    if (trigger?.matches(&quot;:focus-visible&quot;)) {
-      requestOpen(trigger, true);
-    }
-  };
-  const handleKeyDown = (event) =&gt; {
-    if (event.key === &quot;Escape&quot;) {
-      closeTooltip();
-    }
-  };
-  const handleContextMenu = (event) =&gt; {
-    lastPointerWasTouch = false;
-    const trigger = getTrigger(event);
-    if (activeTrigger === trigger || pendingTrigger === trigger) {
-      closeTooltip();
-    }
-  };
-  const handlers = {
-    pointerover: handlePointerOpen,
-    pointerdown: handlePointer,
-    pointercancel: handlePointer,
-    click: handleTouchClick,
-    pointerout: handleLeave,
-    focusin: handleFocusIn,
-    focusout: handleLeave,
-    keydown: handleKeyDown,
-    contextmenu: handleContextMenu,
-  };
-  const roots = new Map();
-  const handledEvents = new WeakSet();
-  const handleEvent = (event) =&gt; {
-    if (handledEvents.has(event)) return;
-    handledEvents.add(event);
-    handlers[event.type](event);
-  };
-  const discoverRoots = (node) =&gt; {
-    if (node.shadowRoot) listen(node.shadowRoot);
-    for (const element of node.querySelectorAll(&quot;*&quot;)) {
-      if (element.shadowRoot) listen(element.shadowRoot);
-    }
-  };
-  const listen = (root) =&gt; {
-    if (roots.has(root)) return;
-    for (const type of Object.keys(handlers)) root.addEventListener(type, handleEvent);
-    const observer = new window.MutationObserver((records) =&gt; {
-      for (const { addedNodes } of records) {
-        for (const node of addedNodes) {
-          if (node.nodeType === Node.ELEMENT_NODE) discoverRoots(node);
-        }
-      }
-      for (const [root, cleanup] of roots) {
-        if (root.host &amp;&amp; !root.host.isConnected) {
-          cleanup();
-          roots.delete(root);
-        }
-      }
-      if (activeTrigger &amp;&amp; !activeTrigger.isConnected) closeTooltip(false);
-    });
-    observer.observe(root, { childList: true, subtree: true });
-    roots.set(root, () =&gt; {
-      observer.disconnect();
-      for (const type of Object.keys(handlers)) root.removeEventListener(type, handleEvent);
-    });
-    discoverRoots(root);
-  };
-  const destroy = () =&gt; {
-    closeTooltip(false);
-    lastPointerWasTouch = false;
-    for (const cleanup of roots.values()) cleanup();
-    roots.clear();
-    tooltip = null;
-  };
-
-  // Events between children of one shadow root never reach the document.
-  listen(document);
-  window.addEventListener(&quot;pagehide&quot;, destroy, { once: true });
-})();
-&lt;/script&gt;
-&lt;script id=&quot;codex-visualization-tabs&quot;&gt;
-(() =&gt; {
-  const selector = &#x27;.nav[role=&quot;tablist&quot;] [role=&quot;tab&quot;]&#x27;;
-  const disabled = &#x27;:disabled,[aria-disabled=&quot;true&quot;]&#x27;;
-  const selectTab = (selected) =&gt; {
-    const panelId = selected.getAttribute(&quot;aria-controls&quot;);
-    for (const tab of selected.closest(&#x27;[role=&quot;tablist&quot;]&#x27;).querySelectorAll(&#x27;[role=&quot;tab&quot;]&#x27;)) {
-      const active = tab === selected;
-      tab.classList.toggle(&quot;active&quot;, active);
-      tab.setAttribute(&quot;aria-selected&quot;, String(active));
-      const id = tab.getAttribute(&quot;aria-controls&quot;);
-      const panel = id &amp;&amp; document.getElementById(id);
-      if (panel != null) {
-        panel.hidden = id !== panelId;
-        if (!panel.hidden &amp;&amp; selected.id) {
-          panel.setAttribute(&quot;aria-labelledby&quot;, selected.id);
-        }
-      }
-    }
-  };
-  const interact = (event) =&gt; {
-    const tab = event.target?.closest?.(selector);
-    if (event.defaultPrevented || tab == null || tab.matches(disabled)) {
-      return;
-    }
-    if (event.type === &quot;click&quot;) {
-      selectTab(tab);
-      return;
-    }
-    const tabs = Array.from(
-      tab.closest(&#x27;[role=&quot;tablist&quot;]&#x27;).querySelectorAll(&#x27;[role=&quot;tab&quot;]&#x27;),
-    ).filter((candidate) =&gt; !candidate.matches(disabled));
-    const current = tabs.indexOf(tab);
-    let next;
-    if (event.key === &quot;ArrowRight&quot; || event.key === &quot;ArrowDown&quot;) {
-      next = (current + 1) % tabs.length;
-    } else if (event.key === &quot;ArrowLeft&quot; || event.key === &quot;ArrowUp&quot;) {
-      next = (current + tabs.length - 1) % tabs.length;
-    } else if (event.key === &quot;Home&quot;) {
-      next = 0;
-    } else if (event.key === &quot;End&quot;) {
-      next = tabs.length - 1;
-    } else {
-      return;
-    }
-    event.preventDefault();
-    tabs[next].focus();
-    selectTab(tabs[next]);
-  };
-
-  for (const list of document.querySelectorAll(&#x27;.nav[role=&quot;tablist&quot;]&#x27;)) {
-    const selected =
-      list.querySelector(&#x27;[role=&quot;tab&quot;][aria-selected=&quot;true&quot;]&#x27;) ??
-      list.querySelector(&#x27;[role=&quot;tab&quot;].active&#x27;) ??
-      list.querySelector(&#x27;[role=&quot;tab&quot;]&#x27;);
-    if (selected != null) {
-      selectTab(selected);
-    }
-  }
-  document.addEventListener(&quot;click&quot;, interact);
-  document.addEventListener(&quot;keydown&quot;, interact);
-  window.addEventListener(&quot;pagehide&quot;, () =&gt; {
-    document.removeEventListener(&quot;click&quot;, interact);
-    document.removeEventListener(&quot;keydown&quot;, interact);
-  }, { once: true });
-})();
-&lt;/script&gt;
-&lt;script id=&quot;codex-visualization-carousel&quot;&gt;
-  (() =&gt; {
-    for (const root of document.querySelectorAll(&quot;.viz-carousel&quot;)) {
-      const panels = Array.from(
-        root.querySelectorAll(&quot;:scope &gt; [data-variant]&quot;),
-      );
-      if (panels.length === 0) {
-        continue;
-      }
-      root.setAttribute(&quot;role&quot;, &quot;group&quot;);
-      panels.forEach((panel, index) =&gt; {
-        panel.hidden = index !== 0;
-        panel.setAttribute(&quot;role&quot;, &quot;group&quot;);
-        if (!panel.hasAttribute(&quot;aria-label&quot;)) {
-          panel.setAttribute(&quot;aria-label&quot;, panel.dataset.variant);
-        }
-      });
-      root.dataset.activeVariant = panels[0].dataset.variant;
-      if (panels.length === 1) {
-        continue;
-      }
-
-      const controls = document.createElement(&quot;div&quot;);
-      controls.className = &quot;viz-carousel-controls&quot;;
-      // Portable copy of the settings dropdown&#x27;s legacy glyph; no 14px icon-package preset matches it.
-      // https://github.com/openai/openai/blob/master/codex/codex-apps/webview/src/icons/chevron.svg
-      controls.innerHTML = `
-      &lt;button type=&quot;button&quot; class=&quot;viz-carousel-previous cursor-interaction&quot;&gt;&lt;i data-lucide=&quot;chevron-left&quot; aria-hidden=&quot;true&quot;&gt;&lt;/i&gt;&lt;/button&gt;
-      &lt;details class=&quot;viz-carousel-picker&quot;&gt;
-        &lt;summary class=&quot;cursor-interaction&quot;&gt;
-          &lt;span class=&quot;viz-carousel-count tabular-nums&quot;&gt;&lt;/span&gt;
-          &lt;span class=&quot;viz-carousel-name&quot;&gt;&lt;/span&gt;
-          &lt;svg class=&quot;viz-carousel-caret&quot; width=&quot;14&quot; height=&quot;14&quot; viewBox=&quot;0 0 20 21&quot; fill=&quot;none&quot; aria-hidden=&quot;true&quot; focusable=&quot;false&quot;&gt;
-            &lt;path d=&quot;M15.2793 7.71101C15.539 7.45131 15.961 7.45131 16.2207 7.71101C16.4804 7.97071 16.4804 8.39272 16.2207 8.65242L10.4707 14.4024C10.211 14.6621 9.78902 14.6621 9.52932 14.4024L3.77932 8.65242L3.69436 8.54792C3.52385 8.28979 3.55205 7.93828 3.77932 7.71101C4.00659 7.48374 4.3581 7.45554 4.61623 7.62605L4.72073 7.71101L10 12.9903L15.2793 7.71101Z&quot; fill=&quot;currentColor&quot; stroke=&quot;currentColor&quot; stroke-width=&quot;0.6&quot; /&gt;
-          &lt;/svg&gt;
-        &lt;/summary&gt;
-        &lt;div class=&quot;viz-carousel-options&quot;&gt;&lt;/div&gt;
-      &lt;/details&gt;
-      &lt;button type=&quot;button&quot; class=&quot;viz-carousel-next cursor-interaction&quot;&gt;&lt;i data-lucide=&quot;chevron-right&quot; aria-hidden=&quot;true&quot;&gt;&lt;/i&gt;&lt;/button&gt;`;
-      const previous = controls.querySelector(&quot;.viz-carousel-previous&quot;);
-      const next = controls.querySelector(&quot;.viz-carousel-next&quot;);
-      const picker = controls.querySelector(&quot;.viz-carousel-picker&quot;);
-      const summary = picker.querySelector(&quot;summary&quot;);
-      const count = controls.querySelector(&quot;.viz-carousel-count&quot;);
-      const name = controls.querySelector(&quot;.viz-carousel-name&quot;);
-      const options = controls.querySelector(&quot;.viz-carousel-options&quot;);
-      const status = document.createElement(&quot;span&quot;);
-      status.className = &quot;sr-only&quot;;
-      status.setAttribute(&quot;role&quot;, &quot;status&quot;);
-      status.setAttribute(&quot;aria-live&quot;, &quot;polite&quot;);
-      status.setAttribute(&quot;aria-atomic&quot;, &quot;true&quot;);
-      previous.setAttribute(
-        &quot;aria-label&quot;,
-        root.dataset.previousLabel ?? &quot;Previous variant&quot;,
-      );
-      next.setAttribute(&quot;aria-label&quot;, root.dataset.nextLabel ?? &quot;Next variant&quot;);
-
-      let active = 0;
-      let mousePointerId = null;
-      let summaryPointerHandled = false;
-      summary.addEventListener(&quot;pointerdown&quot;, (event) =&gt; {
-        summaryPointerHandled =
-          event.pointerType === &quot;mouse&quot; &amp;&amp; event.button === 0 &amp;&amp; !event.ctrlKey;
-        if (!summaryPointerHandled) {
-          return;
-        }
-        event.preventDefault();
-        summary.focus({ preventScroll: true });
-        picker.open = !picker.open;
-        mousePointerId = picker.open ? event.pointerId : null;
-      });
-      summary.addEventListener(&quot;click&quot;, (event) =&gt; {
-        if (summaryPointerHandled &amp;&amp; event.detail &gt; 0) {
-          event.preventDefault();
-        }
-      });
-      const choices = panels.map((panel, index) =&gt; {
-        const choice = document.createElement(&quot;button&quot;);
-        choice.type = &quot;button&quot;;
-        choice.className = &quot;cursor-interaction&quot;;
-        choice.textContent = panel.dataset.variant;
-        choice.addEventListener(&quot;click&quot;, () =&gt; {
-          select(index);
-          summary.focus();
-        });
-        choice.addEventListener(&quot;pointerup&quot;, (event) =&gt; {
-          if (
-            picker.open &amp;&amp;
-            event.pointerType === &quot;mouse&quot; &amp;&amp;
-            event.button === 0 &amp;&amp;
-            event.pointerId === mousePointerId
-          ) {
-            choice.click();
-          }
-        });
-        options.appendChild(choice);
-        return choice;
-      });
-      const select = (index) =&gt; {
-        const changed = active !== index;
-        active = index;
-        panels.forEach((panel, position) =&gt; {
-          panel.hidden = position !== active;
-          choices[position].setAttribute(
-            &quot;aria-current&quot;,
-            String(position === active),
-          );
-        });
-        root.dataset.activeVariant = panels[active].dataset.variant;
-        count.textContent = `${active + 1} / ${panels.length}`;
-        name.textContent = panels[active].dataset.variant;
-        picker.open = false;
-        mousePointerId = null;
-        if (changed) {
-          status.textContent = `${count.textContent}: ${name.textContent}`;
-        }
-      };
-      previous.addEventListener(&quot;click&quot;, () =&gt;
-        select((active + panels.length - 1) % panels.length),
-      );
-      next.addEventListener(&quot;click&quot;, () =&gt;
-        select((active + 1) % panels.length),
-      );
-      picker.addEventListener(&quot;keydown&quot;, (event) =&gt; {
-        if (event.key === &quot;Escape&quot; &amp;&amp; picker.open) {
-          event.preventDefault();
-          picker.open = false;
-          mousePointerId = null;
-          summary.focus();
-          return;
-        }
-        if (event.altKey || event.ctrlKey || event.metaKey) {
-          return;
-        }
-        const index = choices.indexOf(document.activeElement);
-        let nextIndex;
-        if (event.key === &quot;ArrowDown&quot;) {
-          nextIndex = index &lt; 0 ? active : (index + 1) % choices.length;
-        } else if (event.key === &quot;ArrowUp&quot;) {
-          nextIndex = index &lt; 0 ? active : (index + choices.length - 1) % choices.length;
-        } else if (picker.open &amp;&amp; event.key === &quot;Home&quot;) {
-          nextIndex = 0;
-        } else if (picker.open &amp;&amp; event.key === &quot;End&quot;) {
-          nextIndex = choices.length - 1;
-        } else {
-          return;
-        }
-        event.preventDefault();
-        picker.open = true;
-        choices[nextIndex].focus();
-      });
-      picker.addEventListener(&quot;focusout&quot;, (event) =&gt; {
-        if (!picker.contains(event.relatedTarget)) {
-          picker.open = false;
-          mousePointerId = null;
-        }
-      });
-      const dismiss = (event) =&gt; {
-        if (!summary.contains(event.target)) {
-          mousePointerId = null;
-        }
-        if (!picker.contains(event.target)) {
-          picker.open = false;
-        }
-      };
-      const endPointerSelection = () =&gt; {
-        mousePointerId = null;
-      };
-      const sizePicker = () =&gt; {
-        root.style.setProperty(
-          &quot;--viz-carousel-picker-height&quot;,
-          `${picker.open ? options.offsetHeight : 0}px`,
-        );
-      };
-      picker.addEventListener(&quot;toggle&quot;, sizePicker);
-      window.addEventListener(&quot;resize&quot;, sizePicker);
-      document.addEventListener(&quot;pointerdown&quot;, dismiss);
-      document.addEventListener(&quot;pointerup&quot;, endPointerSelection);
-      document.addEventListener(&quot;pointercancel&quot;, endPointerSelection);
-      window.addEventListener(&quot;blur&quot;, endPointerSelection);
-      window.addEventListener(
-        &quot;pagehide&quot;,
-        () =&gt; {
-          document.removeEventListener(&quot;pointerdown&quot;, dismiss);
-          document.removeEventListener(&quot;pointerup&quot;, endPointerSelection);
-          document.removeEventListener(&quot;pointercancel&quot;, endPointerSelection);
-          window.removeEventListener(&quot;blur&quot;, endPointerSelection);
-          window.removeEventListener(&quot;resize&quot;, sizePicker);
-        },
-        { once: true },
-      );
-      root.append(controls, status);
-      select(0);
-    }
-  })();
-&lt;/script&gt;
-&lt;script id=&quot;codex-visualization-lucide&quot; async src=&quot;https://unpkg.com/lucide@1.17.0/dist/umd/lucide.js&quot;&gt;&lt;/script&gt;
-&lt;script&gt;
-(() =&gt; {
-  const initialize = () =&gt; {
-    globalThis.lucide?.createIcons({ attrs: { width: 16, height: 16 } });
-  };
-  if (globalThis.lucide != null) {
-    initialize();
-    return;
-  }
-  document
-    .getElementById(&quot;codex-visualization-lucide&quot;)
-    ?.addEventListener(&quot;load&quot;, initialize, { once: true });
-})();
-&lt;/script&gt;
-
-&lt;/body&gt;
-&lt;/html&gt;
-"></iframe>
-
-<script>(() => {
-  const frame = document.getElementById("codex-visualization");
-  if (!(frame instanceof HTMLIFrameElement)) {
-    return;
-  }
-  const isShare = document.documentElement.classList.contains(
-    "visualization-share-root",
-  );
-  let viewportHeight = globalThis.innerHeight;
-  let sizeFingerprint = null;
-  let sizeWriteTimeout;
-  let lastSize = null;
-  let pendingSize = null;
-  const storageKey = `codex:visualization-widget-state-v2:${JSON.stringify([
-    globalThis.location.pathname,
-    globalThis.location.search,
-  ])}`;
-  const sizeStorageKey = `${storageKey}:share-size-v1`;
-  const parseState = (serializedState) => {
-    if (
-      typeof serializedState !== "string" ||
-      new TextEncoder().encode(serializedState).length > 16 * 1024
-    ) {
-      throw new TypeError(
-        "Widget state must be a JSON object of at most 16 KiB",
-      );
-    }
-    /** @type {unknown} */
-    const state = JSON.parse(serializedState);
-    if (
-      state == null ||
-      typeof state !== "object" ||
-      Array.isArray(state) ||
-      ("imageIds" in state &&
-        (!Array.isArray(state.imageIds) || state.imageIds.length > 0))
-    ) {
-      throw new TypeError("Widget state must be a JSON object");
-    }
-    const storedState = { modelContent: null, privateContent: null, ...state };
-    const canonicalState = JSON.stringify(
-      storedState,
-      (_key, /** @type {unknown} */ value) => {
-        if (typeof value === "number" && !Number.isFinite(value)) {
-          throw new TypeError("Widget state must contain finite numbers");
-        }
-        return value;
-      },
-    );
-    if (new TextEncoder().encode(canonicalState).length > 16 * 1024) {
-      throw new TypeError(
-        "Widget state must be a JSON object of at most 16 KiB",
-      );
-    }
-    return storedState;
-  };
-  let storage = null;
-  let state = null;
-  try {
-    const localStorage = globalThis.localStorage;
-    const probeKey = `${storageKey}:probe`;
-    localStorage.setItem(probeKey, "1");
-    localStorage.removeItem(probeKey);
-    storage = localStorage;
-    const savedState = storage.getItem(storageKey);
-    if (savedState != null) {
-      try {
-        state = parseState(savedState);
-      } catch {
-        // Invalid saved state does not disable future writes.
-      }
-    }
-  } catch {
-    storage = null;
-  }
-  const persistSize = () => {
-    globalThis.clearTimeout(sizeWriteTimeout);
-    if (pendingSize == null) {
-      return;
-    }
-    try {
-      storage?.setItem(sizeStorageKey, pendingSize);
-    } catch {
-      // A denied or full cache must not affect the visualization.
-    }
-    pendingSize = null;
-  };
-  if (isShare) {
-    globalThis.addEventListener("pagehide", persistSize);
-  }
-  const initialGlobals = {
-    widgetState: state,
-    statePersistence: storage == null ? "none" : "local",
-  };
-
-  const channel = new MessageChannel();
-  channel.port1.addEventListener("message", (event) => {
-    const data = event.data;
-    if (typeof data !== "object" || data == null) {
-      return;
-    }
-    if (data.type === "widget-state-write") {
-      if (!Number.isSafeInteger(data.id) || data.id <= 0) {
-        return;
-      }
-      let ok = false;
-      try {
-        if (storage != null) {
-          const state = parseState(data.state);
-          storage.setItem(storageKey, JSON.stringify(state));
-          ok = true;
-        }
-      } catch {
-        // Storage denial, quota limits, and invalid state return a failed receipt.
-      }
-      channel.port1.postMessage({
-        type: "widget-state-result",
-        id: data.id,
-        ok,
-      });
-      return;
-    }
-    if (data.type === "height") {
-      const height = data.height;
-      if (
-        typeof height !== "number" ||
-        !Number.isFinite(height) ||
-        height < 0
-      ) {
-        return;
-      }
-      if (height <= 10_000) {
-        const width = isShare && storage != null ? frame.clientWidth : null;
-        frame.style.height = Math.ceil(height) + "px";
-        if (isShare && storage != null) {
-          const size = JSON.stringify({
-            fingerprint: sizeFingerprint,
-            width,
-            viewportHeight: globalThis.innerHeight,
-            dark: globalThis.matchMedia("(prefers-color-scheme: dark)").matches,
-            scale: globalThis.devicePixelRatio,
-            height: Math.ceil(height),
-          });
-          if (size !== lastSize) {
-            lastSize = size;
-            pendingSize = size;
-            globalThis.clearTimeout(sizeWriteTimeout);
-            sizeWriteTimeout = globalThis.setTimeout(persistSize, 100);
-          }
-        }
-      }
-      if (isShare) {
-        // Keep unusually tall content accessible without accepting an unbounded height.
-        if (height > 10_000 && Number.parseFloat(frame.style.height) === 0) {
-          frame.style.removeProperty("height");
-        }
-        frame.scrolling = height > 10_000 ? "auto" : "no";
-        document.documentElement.classList.add("visualization-share-ready");
-      }
-      return;
-    }
-    if (data.type === "scroll-to") {
-      const top = data.top;
-      if (
-        typeof top === "number" &&
-        Number.isFinite(top) &&
-        top >= 0 &&
-        globalThis.navigator.userActivation?.isActive === true
-      ) {
-        globalThis.scrollTo({
-          top: Math.ceil(
-            globalThis.scrollY + frame.getBoundingClientRect().top + top,
-          ),
-        });
-      }
-      return;
-    }
-    if (data.type === "open-external") {
-      const rawHref = data.href;
-      if (typeof rawHref !== "string") {
-        return;
-      }
-      let href;
-      try {
-        const url = new URL(rawHref, document.baseURI);
-        if (url.protocol !== "https:") {
-          return;
-        }
-        href = url.href;
-      } catch {
-        return;
-      }
-      if (globalThis.navigator.userActivation?.isActive === true) {
-        const anchor = document.createElement("a");
-        anchor.href = href;
-        anchor.rel = "noopener noreferrer";
-        anchor.target = "_blank";
-        document.body.appendChild(anchor);
-        anchor.click();
-        anchor.remove();
-      }
-      return;
-    }
-    if (data.type === "follow-up") {
-      const prompt = data.prompt;
-      if (
-        typeof prompt !== "string" ||
-        globalThis.navigator.userActivation?.isActive !== true
-      ) {
-        return;
-      }
-      const title = data.title;
-      globalThis.prompt(typeof title === "string" ? title : prompt, prompt);
-    }
-  });
-  channel.port1.start();
-  const srcdoc = frame.dataset.srcdoc;
-  if (srcdoc == null) {
-    return;
-  }
-  globalThis.addEventListener("resize", () => {
-    const height = Number.parseFloat(frame.style.height);
-    if (!isShare && (!Number.isFinite(height) || height <= viewportHeight)) {
-      frame.style.removeProperty("height");
-    }
-    viewportHeight = globalThis.innerHeight;
-    channel.port1.postMessage({ type: "measure" });
-  });
-  frame.addEventListener(
-    "load",
-    () => {
-      frame.contentWindow?.postMessage(
-        { type: "codex-visualization-initialize" },
-        "*",
-        [channel.port2],
-      );
-    },
-    { once: true },
-  );
-  // Match the trusted bootstrap element, not the same text in an authored title.
-  const frameHtml = srcdoc.replace(
-    '<script type="application/json" id="codex-visualization-widget-state">__CODEX_VISUALIZATION_WIDGET_STATE__<\/script>',
-    () =>
-      '<script type="application/json" id="codex-visualization-widget-state">' +
-      JSON.stringify(initialGlobals).replaceAll("<", "\\u003c") +
-      "<\/script>",
-  );
-  if (isShare && storage != null) {
-    // Fingerprint the rendered document, including restored widget state, without
-    // storing its content. This is a layout cache, not a security identity.
-    let hash = 5381;
-    for (let index = 0; index < frameHtml.length; index += 1) {
-      hash = (hash * 33 + frameHtml.charCodeAt(index)) % 4_294_967_296;
-    }
-    sizeFingerprint = hash.toString(36);
-    try {
-      const size = JSON.parse(storage.getItem(sizeStorageKey) ?? "null");
-      if (
-        size?.fingerprint === sizeFingerprint &&
-        size.width === frame.clientWidth &&
-        size.viewportHeight === globalThis.innerHeight &&
-        size.dark ===
-          globalThis.matchMedia("(prefers-color-scheme: dark)").matches &&
-        size.scale === globalThis.devicePixelRatio &&
-        typeof size.height === "number" &&
-        Number.isFinite(size.height) &&
-        size.height >= 0 &&
-        size.height <= 10_000
-      ) {
-        frame.style.height = size.height + "px";
-      }
-    } catch {
-      // Ignore missing or invalid cache entries and measure the live frame.
-    }
-  }
-  frame.srcdoc = frameHtml;
-  delete frame.dataset.srcdoc;
-})();
-</script>
+  </script>
+</div>
+</main>
 </body>
 </html>

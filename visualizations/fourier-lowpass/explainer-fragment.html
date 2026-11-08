@@ -1,0 +1,640 @@
+<div id="fourier-lowpass-explainer">
+  <style>
+    #fourier-lowpass-explainer {
+      --background: #ffffff;
+      --foreground: #1a1c1f;
+      --card: #f5f6f7;
+      --card-foreground: #1a1c1f;
+      --primary: #176b87;
+      --primary-foreground: #ffffff;
+      --muted: #e8ecee;
+      --muted-foreground: #667177;
+      --accent: #e5f2f6;
+      --accent-foreground: #174f62;
+      --border: #d5dade;
+      --viz-series-1: #176b87;
+      --viz-series-2: #c76542;
+      --font-size-base: 15px;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: var(--font-size-base);
+      line-height: 1.5;
+    }
+    #fourier-lowpass-explainer *,
+    #fourier-lowpass-explainer *::before,
+    #fourier-lowpass-explainer *::after { box-sizing: border-box; }
+    #fourier-lowpass-explainer h1,
+    #fourier-lowpass-explainer h3,
+    #fourier-lowpass-explainer p { margin: 0; }
+    #fourier-lowpass-explainer h1 { font-size: 26px; line-height: 1.25; font-weight: 650; }
+    #fourier-lowpass-explainer h3 { font-size: 17px; line-height: 1.3; font-weight: 650; }
+    #fourier-lowpass-explainer code {
+      padding: 2px 6px;
+      background: var(--muted);
+      border-radius: 4px;
+      color: var(--foreground);
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    }
+    #fourier-lowpass-explainer .text-small { font-size: 13px; }
+    #fourier-lowpass-explainer .text-muted { color: var(--muted-foreground); }
+    #fourier-lowpass-explainer .tabular-nums { font-variant-numeric: tabular-nums; }
+    #fourier-lowpass-explainer .btn {
+      min-height: 38px;
+      padding: 7px 12px;
+      border: 1px solid var(--border);
+      border-radius: 7px;
+      background: var(--background);
+      color: var(--foreground);
+      font: inherit;
+      font-weight: 600;
+    }
+    #fourier-lowpass-explainer .btn:hover:not(:disabled) { border-color: var(--primary); }
+    #fourier-lowpass-explainer .btn:focus-visible { outline: 3px solid var(--primary); outline-offset: 2px; }
+    #fourier-lowpass-explainer .btn:disabled { opacity: 0.45; }
+    #fourier-lowpass-explainer .btn-primary { background: var(--foreground); color: var(--background); border-color: var(--foreground); }
+    #fourier-lowpass-explainer .form-range { width: 100%; accent-color: var(--primary); }
+    #fourier-lowpass-explainer [data-lucide] { display: none; }
+    #fourier-lowpass-explainer {
+      display: grid;
+      gap: calc(var(--font-size-base) * 1);
+      color: var(--foreground);
+    }
+    #fourier-lowpass-explainer .fl-title-group {
+      display: grid;
+      gap: calc(var(--font-size-base) * 0.35);
+      padding-right: 96px;
+    }
+    #fourier-lowpass-explainer .fl-step-track {
+      display: grid;
+      grid-template-columns: repeat(6, minmax(0, 1fr));
+      gap: 4px;
+    }
+    #fourier-lowpass-explainer .fl-step {
+      height: 6px;
+      background: #d8dde0;
+    }
+    #fourier-lowpass-explainer .fl-step.is-active {
+      background: var(--viz-series-1);
+    }
+    #fourier-lowpass-explainer .fl-controls {
+      display: grid;
+      grid-template-columns: auto minmax(180px, 1fr) auto;
+      align-items: end;
+      gap: calc(var(--font-size-base) * 1);
+    }
+    #fourier-lowpass-explainer .fl-buttons {
+      display: flex;
+      align-items: center;
+      gap: calc(var(--font-size-base) * 0.4);
+      flex-wrap: wrap;
+    }
+    #fourier-lowpass-explainer .fl-slider-wrap {
+      display: grid;
+      gap: calc(var(--font-size-base) * 0.25);
+    }
+    #fourier-lowpass-explainer .fl-slider-head {
+      display: flex;
+      justify-content: space-between;
+      gap: calc(var(--font-size-base) * 0.75);
+      align-items: baseline;
+    }
+    #fourier-lowpass-explainer .fl-presets {
+      display: flex;
+      gap: calc(var(--font-size-base) * 0.35);
+      flex-wrap: wrap;
+    }
+    #fourier-lowpass-explainer .fl-stage {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) auto minmax(0, 1fr);
+      gap: calc(var(--font-size-base) * 0.7);
+      align-items: center;
+    }
+    #fourier-lowpass-explainer .fl-panel {
+      display: grid;
+      gap: calc(var(--font-size-base) * 0.4);
+      min-width: 0;
+    }
+    #fourier-lowpass-explainer .fl-panel-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: calc(var(--font-size-base) * 0.5);
+    }
+    #fourier-lowpass-explainer .fl-canvas-wrap {
+      position: relative;
+      aspect-ratio: 1;
+      min-height: 170px;
+    }
+    #fourier-lowpass-explainer canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+      border: 1px solid var(--border);
+      background: var(--card);
+    }
+    #fourier-lowpass-explainer .fl-arrow {
+      color: var(--muted-foreground);
+      display: grid;
+      place-items: center;
+    }
+    #fourier-lowpass-explainer .fl-arrow.is-active {
+      color: var(--viz-series-1);
+    }
+    #fourier-lowpass-explainer .fl-readout {
+      min-height: 2.8em;
+      display: grid;
+      gap: calc(var(--font-size-base) * 0.25);
+    }
+    #fourier-lowpass-explainer .fl-equation {
+      color: var(--foreground);
+    }
+    #fourier-lowpass-explainer .fl-important {
+      display: flex;
+      align-items: flex-start;
+      gap: calc(var(--font-size-base) * 0.5);
+      padding: calc(var(--font-size-base) * 0.7);
+      background: #faeee9;
+      color: var(--foreground);
+    }
+    #fourier-lowpass-explainer .fl-legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: calc(var(--font-size-base) * 0.8);
+      color: var(--muted-foreground);
+    }
+    #fourier-lowpass-explainer .fl-legend-item {
+      display: inline-flex;
+      align-items: center;
+      gap: calc(var(--font-size-base) * 0.3);
+    }
+    #fourier-lowpass-explainer .fl-swatch {
+      width: 12px;
+      height: 12px;
+      display: inline-block;
+      background: var(--viz-series-1);
+    }
+    #fourier-lowpass-explainer .fl-swatch.mask {
+      background: var(--viz-series-2);
+    }
+    @media (max-width: 760px) {
+      #fourier-lowpass-explainer .fl-controls {
+        grid-template-columns: 1fr;
+        align-items: stretch;
+      }
+      #fourier-lowpass-explainer .fl-stage {
+        grid-template-columns: 1fr;
+      }
+      #fourier-lowpass-explainer .fl-arrow {
+        transform: rotate(90deg);
+      }
+      #fourier-lowpass-explainer .fl-canvas-wrap {
+        min-height: 220px;
+      }
+    }
+  </style>
+
+  <div class="fl-title-group">
+    <h1>从图像到频率，再回到图像</h1>
+    <p class="text-muted" id="fl-step-title">第 1 步 · 空间域：每个数组位置就是一个像素位置</p>
+  </div>
+
+  <div class="fl-step-track" aria-label="动画步骤">
+    <span class="fl-step is-active"></span><span class="fl-step"></span><span class="fl-step"></span>
+    <span class="fl-step"></span><span class="fl-step"></span><span class="fl-step"></span>
+  </div>
+
+  <div class="fl-controls">
+    <div class="fl-buttons">
+      <button class="btn" id="fl-prev" type="button">‹ 上一步</button>
+      <button class="btn btn-primary" id="fl-play" type="button"><span>播放</span></button>
+      <button class="btn" id="fl-next" type="button">下一步 ›</button>
+    </div>
+
+    <label class="fl-slider-wrap" for="fl-cutoff">
+      <span class="fl-slider-head">
+        <span>截止频率 <code>cutoff</code></span>
+        <strong class="tabular-nums"><span id="fl-cutoff-value">0.12</span> cycles/pixel</strong>
+      </span>
+      <input class="form-range" id="fl-cutoff" type="range" min="0.03" max="0.40" value="0.12" step="0.01">
+    </label>
+
+    <div class="fl-presets" aria-label="截止频率预设">
+      <button class="btn" type="button" data-cutoff="0.03">0.03</button>
+      <button class="btn" type="button" data-cutoff="0.08">0.08</button>
+      <button class="btn" type="button" data-cutoff="0.20">0.20</button>
+    </div>
+  </div>
+
+  <div class="fl-stage">
+    <section class="fl-panel" aria-labelledby="fl-source-label">
+      <div class="fl-panel-head">
+        <h3 id="fl-source-label">空间域</h3>
+        <code>I[y, x]</code>
+      </div>
+      <div class="fl-canvas-wrap"><canvas id="fl-source" role="img" aria-label="由大形状、细线和棋盘纹理组成的原始图像"></canvas></div>
+      <div class="fl-readout text-small">
+        <span>数组位置 = 画面位置</span>
+        <span class="text-muted">亮度值说明这个像素有多亮</span>
+      </div>
+    </section>
+
+    <div class="fl-arrow" id="fl-arrow-forward" aria-hidden="true">→</div>
+
+    <section class="fl-panel" aria-labelledby="fl-frequency-label">
+      <div class="fl-panel-head">
+        <h3 id="fl-frequency-label">频率域</h3>
+        <code id="fl-frequency-code">等待 FFT</code>
+      </div>
+      <div class="fl-canvas-wrap"><canvas id="fl-frequency" role="img" aria-label="当前步骤的二维频率表示"></canvas></div>
+      <div class="fl-readout text-small" aria-live="polite">
+        <span id="fl-frequency-detail">这里不再表示像素位置</span>
+        <span class="text-muted" id="fl-frequency-subdetail">每个位置将表示一种水平与垂直变化速度</span>
+      </div>
+    </section>
+
+    <div class="fl-arrow" id="fl-arrow-back" aria-hidden="true">→</div>
+
+    <section class="fl-panel" aria-labelledby="fl-result-label">
+      <div class="fl-panel-head">
+        <h3 id="fl-result-label">重建空间域</h3>
+        <code>real(ifft2)</code>
+      </div>
+      <div class="fl-canvas-wrap"><canvas id="fl-result" role="img" aria-label="应用当前低通滤波器后的重建图像"></canvas></div>
+      <div class="fl-readout text-small">
+        <span id="fl-retained" class="tabular-nums">保留 0% 的频率格点</span>
+        <span class="text-muted" id="fl-blur-label">尚未应用 mask</span>
+      </div>
+    </section>
+  </div>
+
+  <div class="fl-important">
+    <span aria-hidden="true">◎</span>
+    <span id="fl-main-message"><strong>先分清两个“位置”：</strong>左图中心是图像中的一个像素位置；频率中心是 <code>(fx, fy) = (0, 0)</code>，代表整幅图不变化的平均亮度。</span>
+  </div>
+
+  <div class="fl-legend text-small">
+    <span class="fl-legend-item"><span class="fl-swatch"></span>频谱强度</span>
+    <span class="fl-legend-item"><span class="fl-swatch mask"></span>mask 保留范围</span>
+    <span>圆越小 → 高频删除越多 → 整幅图越模糊</span>
+  </div>
+
+  <script>
+    (() => {
+      const root = document.getElementById('fourier-lowpass-explainer');
+      const sourceCanvas = root.querySelector('#fl-source');
+      const frequencyCanvas = root.querySelector('#fl-frequency');
+      const resultCanvas = root.querySelector('#fl-result');
+      const cutoffInput = root.querySelector('#fl-cutoff');
+      const cutoffValue = root.querySelector('#fl-cutoff-value');
+      const playButton = root.querySelector('#fl-play');
+      const playLabel = playButton.querySelector('span');
+      const stepBars = [...root.querySelectorAll('.fl-step')];
+      const N = 32;
+      let step = 0;
+      let timer = null;
+      let cutoff = Number(cutoffInput.value);
+      let source = makeSource();
+      let spectrum = fft2(source, false);
+      let shiftedSpectrum = shiftComplex(spectrum);
+      let reconstruction = source.slice();
+
+      const steps = [
+        {
+          title: '第 1 步 · 空间域：每个数组位置就是一个像素位置',
+          code: 'I[y, x]',
+          detail: '尚未进入频率域',
+          sub: '左图中央只代表图像中央的像素，不代表低频',
+          message: '<strong>先分清两个“位置”：</strong>左图中心是图像中的一个像素位置；频率中心是 <code>(fx, fy) = (0, 0)</code>，代表整幅图不变化的平均亮度。'
+        },
+        {
+          title: '第 2 步 · fft2：把整幅图分解为不同快慢的二维变化',
+          code: 'fft2(I)',
+          detail: '零频率暂时在左上角',
+          sub: '低频分散在边界附近，高频更靠中部',
+          message: '<strong>FFT 后，数组位置的含义变了：</strong>它不再对应画面中的某个像素，而对应一种遍布整幅图的波纹。每个复数记录这种波纹的幅度和相位。'
+        },
+        {
+          title: '第 3 步 · fftshift：只重排频谱，把零频率移到中央',
+          code: 'fftshift(FFT)',
+          detail: '中心十字处是 (fx, fy) = (0, 0)',
+          sub: '离中心越远，空间变化越快',
+          message: '<strong>“频率中心”不是图像中心：</strong>它只是频率坐标的原点。中心代表恒定亮度；向外走代表更快的明暗变化，也就是更细的纹理和更锐利的边缘。'
+        },
+        {
+          title: '第 4 步 · 创建 mask：用到频率中心的距离决定保留范围',
+          code: 'sqrt(fx² + fy²) ≤ cutoff',
+          detail: '圆内 True（保留），圆外 False（删除）',
+          sub: '拖动 cutoff，观察圆的半径变化',
+          message: '<strong>mask 的圆心是频率原点：</strong>它不是在图像中央盖一层模糊。圆形 mask 选择的是“哪些变化速度”可用于重建，因此会同时影响整幅图的所有位置。'
+        },
+        {
+          title: '第 5 步 · 频谱乘以 mask：圆外频率变成 0',
+          code: 'FFTcentered × mask',
+          detail: '保留下来的复数仍含幅度与相位',
+          sub: '被删掉的高频无法参与重建',
+          message: '<strong>乘法发生在同一频率坐标上：</strong><code>True</code> 相当于乘 1，频率保留；<code>False</code> 相当于乘 0，频率删除。小圆会删除更多细线、纹理和尖锐边缘。'
+        },
+        {
+          title: '第 6 步 · ifftshift + ifft2：把保留的波纹重新叠加成图像',
+          code: 'real(ifft2(ifftshift(...)))',
+          detail: '右图重新变成像素数组',
+          sub: '低频仍覆盖整幅图，所以模糊也是全局的',
+          message: '<strong>逆变换就是重新叠加：</strong>完整频谱能精确还原原图；删除高频后，只能用缓慢变化的波纹近似原图，所以细节消失、边缘变软。'
+        }
+      ];
+
+      function makeSource() {
+        const a = new Float64Array(N * N);
+        for (let y = 0; y < N; y++) {
+          for (let x = 0; x < N; x++) {
+            let v = 0.08 + 0.18 * (x / (N - 1));
+            if (x >= 4 && x <= 13 && y >= 5 && y <= 25) v = 0.78;
+            if (x >= 13 && x <= 20 && y >= 5 && y <= 9) v = 0.78;
+            if (x >= 13 && x <= 18 && y >= 14 && y <= 18) v = 0.78;
+            if (x >= 21 && y >= 19 && ((x + y) % 2 === 0)) v = 0.95;
+            if (x >= 22 && x <= 29 && y >= 3 && y <= 4) v = 1;
+            a[y * N + x] = v;
+          }
+        }
+        return a;
+      }
+
+      function dft1d(re, im, inverse) {
+        const outRe = new Float64Array(N);
+        const outIm = new Float64Array(N);
+        const sign = inverse ? 1 : -1;
+        for (let k = 0; k < N; k++) {
+          let sr = 0, si = 0;
+          for (let n = 0; n < N; n++) {
+            const angle = sign * 2 * Math.PI * k * n / N;
+            const c = Math.cos(angle), s = Math.sin(angle);
+            sr += re[n] * c - im[n] * s;
+            si += re[n] * s + im[n] * c;
+          }
+          const scale = inverse ? 1 / N : 1;
+          outRe[k] = sr * scale;
+          outIm[k] = si * scale;
+        }
+        return [outRe, outIm];
+      }
+
+      function fft2(input, inverse) {
+        const rowRe = new Float64Array(N * N);
+        const rowIm = new Float64Array(N * N);
+        for (let y = 0; y < N; y++) {
+          const re = new Float64Array(N), im = new Float64Array(N);
+          for (let x = 0; x < N; x++) {
+            const value = input[y * N + x];
+            re[x] = typeof value === 'number' ? value : value.re;
+            im[x] = typeof value === 'number' ? 0 : value.im;
+          }
+          const [or, oi] = dft1d(re, im, inverse);
+          for (let x = 0; x < N; x++) {
+            rowRe[y * N + x] = or[x];
+            rowIm[y * N + x] = oi[x];
+          }
+        }
+        const output = new Array(N * N);
+        for (let x = 0; x < N; x++) {
+          const re = new Float64Array(N), im = new Float64Array(N);
+          for (let y = 0; y < N; y++) {
+            re[y] = rowRe[y * N + x];
+            im[y] = rowIm[y * N + x];
+          }
+          const [or, oi] = dft1d(re, im, inverse);
+          for (let y = 0; y < N; y++) output[y * N + x] = { re: or[y], im: oi[y] };
+        }
+        return output;
+      }
+
+      function shiftComplex(input) {
+        const out = new Array(N * N);
+        const half = N / 2;
+        for (let y = 0; y < N; y++) {
+          for (let x = 0; x < N; x++) {
+            out[y * N + x] = input[((y + half) % N) * N + ((x + half) % N)];
+          }
+        }
+        return out;
+      }
+
+      function buildMask() {
+        const mask = new Float64Array(N * N);
+        let kept = 0;
+        for (let y = 0; y < N; y++) {
+          const fy = (y - N / 2) / N;
+          for (let x = 0; x < N; x++) {
+            const fx = (x - N / 2) / N;
+            const keep = Math.hypot(fx, fy) <= cutoff;
+            mask[y * N + x] = keep ? 1 : 0;
+            if (keep) kept++;
+          }
+        }
+        return { mask, kept };
+      }
+
+      function updateReconstruction() {
+        const { mask, kept } = buildMask();
+        const filteredShifted = shiftedSpectrum.map((z, i) => ({ re: z.re * mask[i], im: z.im * mask[i] }));
+        const unshifted = shiftComplex(filteredShifted);
+        const inverse = fft2(unshifted, true);
+        reconstruction = new Float64Array(N * N);
+        for (let i = 0; i < reconstruction.length; i++) reconstruction[i] = inverse[i].re;
+        const retainedPercent = kept / (N * N) * 100;
+        const retainedText = retainedPercent < 1 ? retainedPercent.toFixed(1) : Math.round(retainedPercent).toString();
+        root.querySelector('#fl-retained').textContent = `保留 ${retainedText}% 的频率格点`;
+        const blur = cutoff <= 0.05 ? '最强模糊：只剩非常缓慢的变化' : cutoff <= 0.11 ? '明显模糊：细纹和锐利边缘先消失' : cutoff <= 0.22 ? '较多细节被保留' : '接近原图：包含更多高频细节';
+        root.querySelector('#fl-blur-label').textContent = blur;
+      }
+
+      function theme() {
+        const s = getComputedStyle(root);
+        return {
+          foreground: s.getPropertyValue('--foreground').trim(),
+          muted: s.getPropertyValue('--muted-foreground').trim(),
+          card: s.getPropertyValue('--card').trim(),
+          series1: s.getPropertyValue('--viz-series-1').trim(),
+          series2: s.getPropertyValue('--viz-series-2').trim(),
+          border: s.getPropertyValue('--border').trim()
+        };
+      }
+
+      function prepareCanvas(canvas) {
+        const dpr = Math.min(window.devicePixelRatio || 1, 2);
+        const rect = canvas.getBoundingClientRect();
+        const size = Math.max(180, Math.floor(Math.min(rect.width, rect.height) * dpr));
+        if (canvas.width !== size || canvas.height !== size) {
+          canvas.width = size;
+          canvas.height = size;
+        }
+        const ctx = canvas.getContext('2d');
+        ctx.imageSmoothingEnabled = false;
+        return { ctx, size };
+      }
+
+      function drawPixels(canvas, values, dimBeforeFilter) {
+        const { ctx, size } = prepareCanvas(canvas);
+        const colors = theme();
+        ctx.fillStyle = colors.card;
+        ctx.fillRect(0, 0, size, size);
+        const cell = size / N;
+        for (let y = 0; y < N; y++) {
+          for (let x = 0; x < N; x++) {
+            let v = Math.max(0, Math.min(1, values[y * N + x]));
+            if (dimBeforeFilter) v = 0.15 + v * 0.25;
+            const g = Math.round(v * 255);
+            ctx.fillStyle = `rgb(${g},${g},${g})`;
+            ctx.fillRect(x * cell, y * cell, Math.ceil(cell), Math.ceil(cell));
+          }
+        }
+      }
+
+      function drawFrequency() {
+        const { ctx, size } = prepareCanvas(frequencyCanvas);
+        const colors = theme();
+        ctx.fillStyle = colors.card;
+        ctx.fillRect(0, 0, size, size);
+        if (step === 0) {
+          ctx.fillStyle = colors.muted;
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.font = `${Math.max(12, size * 0.045)}px system-ui`;
+          ctx.fillText('等待 fft2', size / 2, size / 2);
+          return;
+        }
+        const data = step === 1 ? spectrum : shiftedSpectrum;
+        const mags = data.map(z => Math.log1p(Math.hypot(z.re, z.im)));
+        const max = Math.max(...mags);
+        const { mask } = buildMask();
+        const cell = size / N;
+        for (let y = 0; y < N; y++) {
+          for (let x = 0; x < N; x++) {
+            const i = y * N + x;
+            if (step === 3) {
+              ctx.fillStyle = mask[i] ? colors.series2 : colors.card;
+            } else {
+              let v = mags[i] / max;
+              if (step >= 4 && !mask[i]) v *= 0.05;
+              const g = Math.round(18 + v * 225);
+              ctx.fillStyle = `rgb(${g},${g},${g})`;
+            }
+            ctx.fillRect(x * cell, y * cell, Math.ceil(cell), Math.ceil(cell));
+          }
+        }
+        ctx.save();
+        ctx.strokeStyle = step >= 3 ? colors.series2 : colors.series1;
+        ctx.lineWidth = Math.max(2, size / 160);
+        const centerX = step === 1 ? 0 : size / 2;
+        const centerY = step === 1 ? 0 : size / 2;
+        ctx.beginPath();
+        ctx.moveTo(centerX, Math.max(0, centerY - size * 0.045));
+        ctx.lineTo(centerX, Math.min(size, centerY + size * 0.045));
+        ctx.moveTo(Math.max(0, centerX - size * 0.045), centerY);
+        ctx.lineTo(Math.min(size, centerX + size * 0.045), centerY);
+        ctx.stroke();
+        if (step >= 3) {
+          ctx.beginPath();
+          ctx.arc(size / 2, size / 2, cutoff * size, 0, Math.PI * 2);
+          ctx.stroke();
+        }
+        ctx.restore();
+      }
+
+      function draw() {
+        updateReconstruction();
+        drawPixels(sourceCanvas, source, false);
+        drawFrequency();
+        drawPixels(resultCanvas, step >= 4 ? reconstruction : source, step < 4);
+        const current = steps[step];
+        root.querySelector('#fl-step-title').textContent = current.title;
+        root.querySelector('#fl-frequency-code').textContent = current.code;
+        root.querySelector('#fl-frequency-detail').textContent = current.detail;
+        root.querySelector('#fl-frequency-subdetail').textContent = current.sub;
+        root.querySelector('#fl-main-message').innerHTML = current.message;
+        root.querySelector('#fl-arrow-forward').classList.toggle('is-active', step >= 1);
+        root.querySelector('#fl-arrow-back').classList.toggle('is-active', step >= 5);
+        stepBars.forEach((bar, index) => bar.classList.toggle('is-active', index <= step));
+        root.querySelector('#fl-prev').disabled = step === 0;
+        root.querySelector('#fl-next').disabled = step === steps.length - 1;
+      }
+
+      function setStep(next) {
+        step = Math.max(0, Math.min(steps.length - 1, next));
+        draw();
+        saveState();
+      }
+
+      function stop() {
+        if (timer) clearInterval(timer);
+        timer = null;
+        playLabel.textContent = '播放';
+      }
+
+      function play() {
+        if (timer) { stop(); return; }
+        if (step === steps.length - 1) step = 0;
+        draw();
+        playLabel.textContent = '暂停';
+        timer = setInterval(() => {
+          if (step >= steps.length - 1) { stop(); return; }
+          step++;
+          draw();
+        }, 1800);
+      }
+
+      function saveState() {
+        if (!window.openai?.setWidgetState) return;
+        window.openai.setWidgetState({
+          modelContent: { cutoff, step },
+          privateContent: null
+        }).catch(() => {});
+      }
+
+      function restoreState(state) {
+        const saved = state?.modelContent || state;
+        if (!saved || typeof saved !== 'object') return;
+        if (Number.isFinite(Number(saved.cutoff))) {
+          cutoff = Math.max(0.03, Math.min(0.40, Number(saved.cutoff)));
+          cutoffInput.value = cutoff.toFixed(2);
+          cutoffValue.textContent = cutoff.toFixed(2);
+        }
+        if (Number.isInteger(saved.step)) step = Math.max(0, Math.min(steps.length - 1, saved.step));
+      }
+
+      restoreState(window.openai?.widgetState);
+      cutoffInput.addEventListener('input', () => {
+        cutoff = Number(cutoffInput.value);
+        cutoffValue.textContent = cutoff.toFixed(2);
+        if (step < 3) step = 3;
+        draw();
+      });
+      cutoffInput.addEventListener('change', saveState);
+      root.querySelectorAll('[data-cutoff]').forEach(button => {
+        button.addEventListener('click', () => {
+          cutoff = Number(button.dataset.cutoff);
+          cutoffInput.value = cutoff.toFixed(2);
+          cutoffValue.textContent = cutoff.toFixed(2);
+          step = 5;
+          draw();
+          saveState();
+        });
+      });
+      root.querySelector('#fl-prev').addEventListener('click', () => { stop(); setStep(step - 1); });
+      root.querySelector('#fl-next').addEventListener('click', () => { stop(); setStep(step + 1); });
+      playButton.addEventListener('click', play);
+      window.addEventListener('openai:set_globals', event => {
+        restoreState(event.detail?.globals?.widgetState);
+        draw();
+      });
+
+      if ('ResizeObserver' in window) {
+        const observer = new ResizeObserver(() => draw());
+        observer.observe(root);
+      } else {
+        window.addEventListener('resize', draw);
+      }
+      const themeObserver = new MutationObserver(() => draw());
+      themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['class', 'data-theme', 'style'] });
+      draw();
+    })();
+  </script>
+</div>
