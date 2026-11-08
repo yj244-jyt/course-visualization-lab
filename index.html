@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="用交互动画解释课程中的抽象概念。">
+  <title>Course Visualization Lab</title>
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="assets/site.css">
+</head>
+<body>
+  <header class="site-header">
+    <a class="brand" href="./" aria-label="Course Visualization Lab 首页">
+      <span class="brand-mark" aria-hidden="true">CV</span>
+      <span>Course Visualization Lab</span>
+    </a>
+    <a class="repo-link" href="https://github.com/yj244-jyt/course-visualization-lab">GitHub</a>
+  </header>
+
+  <main>
+    <section class="catalog-heading" aria-labelledby="page-title">
+      <div>
+        <p class="eyebrow">Interactive course notes</p>
+        <h1 id="page-title">可视化理解动画</h1>
+        <p class="lede">用可操作的图形、动画和参数实验理解课程知识，而不只是记住公式。</p>
+      </div>
+      <div class="count" aria-live="polite">
+        <strong id="visual-count">1</strong>
+        <span>个可视化</span>
+      </div>
+    </section>
+
+    <section aria-labelledby="catalog-title">
+      <div class="section-title-row">
+        <h2 id="catalog-title">全部主题</h2>
+        <span class="status"><span class="status-dot" aria-hidden="true"></span>持续更新</span>
+      </div>
+      <div id="visualization-grid" class="visualization-grid">
+        <a class="visual-card" href="visualizations/fourier-lowpass/">
+          <div class="visual-preview fourier-preview" aria-hidden="true">
+            <span class="preview-image">I(x,y)</span>
+            <span class="preview-arrow">→</span>
+            <span class="preview-spectrum"><i></i></span>
+            <span class="preview-arrow">→</span>
+            <span class="preview-image blurred">Î(x,y)</span>
+          </div>
+          <div class="visual-body">
+            <div class="meta"><span>CS302</span><span>信号与图像</span></div>
+            <h3>傅里叶变换与低通滤波</h3>
+            <p>逐步观察 FFT、频率中心、圆形 mask 和逆变换如何共同决定模糊程度。</p>
+            <span class="open-label">打开动画 <span aria-hidden="true">↗</span></span>
+          </div>
+        </a>
+      </div>
+      <p id="catalog-error" class="catalog-error" hidden>目录加载失败，请刷新页面。</p>
+    </section>
+  </main>
+
+  <footer>
+    <span>Course Visualization Lab</span>
+    <span>Built for learning by doing.</span>
+  </footer>
+  <script src="assets/site.js" defer></script>
+</body>
+</html>

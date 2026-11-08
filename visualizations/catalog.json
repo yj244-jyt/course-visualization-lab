@@ -1,0 +1,11 @@
+[
+  {
+    "slug": "fourier-lowpass",
+    "title": "傅里叶变换与低通滤波",
+    "description": "逐步观察 FFT、频率中心、圆形 mask 和逆变换如何共同决定模糊程度。",
+    "course": "CS302",
+    "topics": ["信号与图像"],
+    "path": "visualizations/fourier-lowpass/",
+    "created": "2026-11-08"
+  }
+]

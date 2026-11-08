@@ -1,0 +1,4 @@
+interface:
+  display_name: "Course Visualization Publisher"
+  short_description: "Build and publish interactive course concept explainers"
+  default_prompt: "Use $course-visualization-publisher to turn this course concept into an interactive visual explanation and add it to my site."
