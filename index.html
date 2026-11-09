@@ -6,7 +6,7 @@
   <meta name="description" content="用交互动画解释课程中的抽象概念。">
   <title>Course Visualization Lab</title>
   <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="assets/site.css?v=3">
+  <link rel="stylesheet" href="assets/site.css?v=4">
 </head>
 <body>
   <header class="site-header">
@@ -25,7 +25,7 @@
         <p class="lede">用可操作的图形、动画和参数实验理解课程知识，而不只是记住公式。</p>
       </div>
       <div class="count" aria-live="polite">
-        <strong id="visual-count">2</strong>
+        <strong id="visual-count">3</strong>
         <span>个可视化</span>
       </div>
     </section>
@@ -36,6 +36,18 @@
         <span class="status"><span class="status-dot" aria-hidden="true"></span>持续更新</span>
       </div>
       <div id="visualization-grid" class="visualization-grid">
+        <a class="visual-card" href="visualizations/image-gradient-direction/?v=5">
+          <div class="visual-preview gradient-preview" aria-hidden="true">
+            <span class="gradient-plane"><i class="gradient-axis-x"></i><i class="gradient-axis-y"></i><i class="gradient-edge"></i><i class="gradient-vector"></i><b>θ</b></span>
+            <span class="gradient-formula">∇I = (Gx, Gy)</span>
+          </div>
+          <div class="visual-body">
+            <div class="meta"><span>CS302</span><span>边缘检测</span></div>
+            <h3>图像梯度：从 Gx、Gy 到方向与 NMS</h3>
+            <p>拖动梯度向量，联动观察中心差分、幅值、atan2 角度、图像坐标系与 NMS 邻居选择。</p>
+            <span class="open-label">打开动画 <span aria-hidden="true">↗</span></span>
+          </div>
+        </a>
         <a class="visual-card" href="visualizations/convolution-pixel-accumulation/?v=4">
           <div class="visual-preview convolution-preview" aria-hidden="true">
             <span class="preview-grid input-grid"><i>2</i><i>1</i><i>0</i><i>3</i><i>5</i><i>2</i><i>0</i><i>1</i><i>4</i></span>
@@ -75,6 +87,6 @@
     <span>Course Visualization Lab</span>
     <span>Built for learning by doing.</span>
   </footer>
-  <script src="assets/site.js?v=3" defer></script>
+  <script src="assets/site.js?v=4" defer></script>
 </body>
 </html>

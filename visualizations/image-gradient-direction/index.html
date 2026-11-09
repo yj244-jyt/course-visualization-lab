@@ -1,0 +1,675 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="交互理解图像梯度 Gx、Gy、幅值、atan2 方向、图像坐标系与非极大值抑制。">
+  <title>图像梯度：从 Gx、Gy 到方向与 NMS</title>
+  <link rel="icon" href="../../assets/favicon.svg" type="image/svg+xml">
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f6f7f8;
+      --surface: #ffffff;
+      --surface-2: #edf0f2;
+      --text: #171a1c;
+      --muted: #5d686e;
+      --border: #d5dade;
+      --blue: #176b87;
+      --blue-soft: #dceef4;
+      --coral: #b9513a;
+      --coral-soft: #fae9e4;
+      --green: #31745c;
+      --green-soft: #e2f0e9;
+      --yellow-soft: #f5edcf;
+      --code: #20262a;
+      --code-text: #edf2f4;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+    body { margin: 0; min-width: 320px; background: var(--bg); color: var(--text); }
+    button, input { font: inherit; }
+    button { cursor: pointer; }
+    h1, h2, h3, p { margin: 0; }
+    code, .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+
+    .site-header {
+      min-height: 58px;
+      padding: 0 24px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+      background: var(--bg);
+      font-size: 14px;
+    }
+    .site-header a { color: var(--blue); font-weight: 650; text-decoration: none; }
+    .site-header span { color: var(--muted); }
+
+    main { width: min(1320px, calc(100% - 32px)); margin: 0 auto; padding: 22px 0 48px; }
+    .explainer { display: grid; gap: 16px; }
+    .title-row { display: flex; align-items: end; justify-content: space-between; gap: 24px; }
+    .title-copy { display: grid; gap: 6px; }
+    h1 { font-size: clamp(25px, 3.4vw, 38px); line-height: 1.18; letter-spacing: 0; }
+    h2 { font-size: 17px; line-height: 1.35; }
+    h3 { font-size: 14px; line-height: 1.35; }
+    .subtitle { color: var(--muted); font-size: 14px; line-height: 1.55; }
+    .shape-badge {
+      flex: 0 0 auto;
+      padding: 7px 10px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .controls {
+      padding: 13px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      display: grid;
+      grid-template-columns: minmax(230px, 1fr) minmax(230px, 1fr) minmax(270px, auto);
+      align-items: end;
+      gap: 18px;
+    }
+    .range-field { display: grid; gap: 7px; min-width: 0; }
+    .range-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; font-size: 13px; }
+    .range-head strong { font-size: 16px; color: var(--blue); font-variant-numeric: tabular-nums; }
+    input[type="range"] { width: 100%; accent-color: var(--blue); }
+    .presets { display: flex; flex-wrap: wrap; gap: 7px; }
+    .btn {
+      min-height: 38px;
+      padding: 7px 10px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      background: var(--surface);
+      color: var(--text);
+      font-weight: 650;
+    }
+    .btn:hover { border-color: var(--blue); color: var(--blue); }
+    .btn:focus-visible, input:focus-visible { outline: 3px solid var(--blue); outline-offset: 2px; }
+
+    .stage {
+      display: grid;
+      grid-template-columns: minmax(280px, .9fr) minmax(340px, 1.15fr) minmax(270px, .85fr);
+      gap: 14px;
+      align-items: stretch;
+    }
+    .panel {
+      min-width: 0;
+      padding: 15px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      display: grid;
+      align-content: start;
+      gap: 12px;
+    }
+    .panel-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+    .panel-head code { color: var(--muted); font-size: 12px; }
+    .panel-note { color: var(--muted); font-size: 13px; line-height: 1.5; min-height: 3em; }
+
+    .pixel-grid {
+      width: min(100%, 300px);
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 4px;
+      font-variant-numeric: tabular-nums;
+    }
+    .pixel {
+      aspect-ratio: 1;
+      display: grid;
+      place-items: center;
+      border: 1px solid var(--border);
+      background: var(--surface-2);
+      color: var(--text);
+      font: 650 12px/1 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    }
+    .pixel.center { border-color: var(--coral); box-shadow: inset 0 0 0 2px var(--coral); }
+    .pixel.x-neighbor { border-color: var(--blue); color: var(--blue); }
+    .pixel.y-neighbor { border-color: var(--green); color: var(--green); }
+    .pixel.center.x-neighbor, .pixel.center.y-neighbor { color: var(--text); }
+
+    .difference-lines { display: grid; gap: 7px; }
+    .difference {
+      padding: 9px 10px;
+      background: var(--surface-2);
+      color: var(--text);
+      font: 12px/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      overflow-wrap: anywhere;
+    }
+    .difference.x { border-left: 4px solid var(--blue); }
+    .difference.y { border-left: 4px solid var(--green); }
+
+    .vector-wrap {
+      position: relative;
+      width: min(100%, 420px);
+      margin: 0 auto;
+      aspect-ratio: 1;
+      touch-action: none;
+    }
+    .vector-wrap svg { display: block; width: 100%; height: 100%; }
+    .plot-frame { fill: var(--surface-2); stroke: var(--border); }
+    .grid-line { stroke: var(--border); stroke-width: 1; }
+    .axis-line { stroke: var(--muted); stroke-width: 1.5; }
+    .projection-x { stroke: var(--blue); stroke-width: 2; stroke-dasharray: 6 5; }
+    .projection-y { stroke: var(--green); stroke-width: 2; stroke-dasharray: 6 5; }
+    .gradient-arrow { stroke: var(--coral); stroke-width: 5; stroke-linecap: round; }
+    .edge-line { stroke: var(--text); stroke-width: 4; opacity: .3; }
+    .angle-arc { fill: none; stroke: var(--coral); stroke-width: 3; }
+    .origin-dot { fill: var(--text); }
+    .tip-dot { fill: var(--coral); }
+    .svg-label { fill: var(--text); font: 14px/1 system-ui, sans-serif; }
+    .svg-muted { fill: var(--muted); font: 13px/1 system-ui, sans-serif; }
+    .svg-x { fill: var(--blue); font: 650 14px/1 ui-monospace, monospace; }
+    .svg-y { fill: var(--green); font: 650 14px/1 ui-monospace, monospace; }
+    .svg-angle { fill: var(--coral); font: 650 15px/1 ui-monospace, monospace; }
+
+    .readouts { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .metric { padding: 10px; background: var(--surface-2); display: grid; gap: 4px; }
+    .metric span { color: var(--muted); font-size: 11px; }
+    .metric strong { font-size: 20px; font-variant-numeric: tabular-nums; }
+    .formula-box { padding: 11px; background: var(--blue-soft); display: grid; gap: 7px; }
+    .formula-box code { font-size: 13px; line-height: 1.55; overflow-wrap: anywhere; }
+    .formula-box strong { font-size: 14px; }
+    .quadrant-message {
+      padding: 11px;
+      border-left: 4px solid var(--coral);
+      background: var(--coral-soft);
+      font-size: 13px;
+      line-height: 1.55;
+    }
+    .direction-list { display: grid; gap: 7px; }
+    .direction-row { display: grid; grid-template-columns: 58px 1fr; gap: 9px; align-items: center; font-size: 13px; }
+    .direction-row code { padding: 5px 7px; background: var(--surface-2); text-align: center; }
+    .direction-row span { color: var(--muted); }
+
+    .nms-section {
+      padding: 15px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      display: grid;
+      gap: 13px;
+    }
+    .section-head { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; }
+    .section-head p { color: var(--muted); font-size: 13px; }
+    .nms-layout {
+      display: grid;
+      grid-template-columns: minmax(230px, .75fr) minmax(320px, 1.2fr) minmax(260px, 1fr);
+      align-items: center;
+      gap: 22px;
+    }
+    .nms-grid {
+      width: min(100%, 260px);
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 5px;
+    }
+    .nms-cell {
+      position: relative;
+      aspect-ratio: 1;
+      display: grid;
+      place-items: center;
+      border: 1px solid var(--border);
+      background: var(--surface-2);
+      font: 650 16px/1 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      transition: background 140ms ease, border-color 140ms ease;
+    }
+    .nms-cell.center { border-color: var(--coral); color: var(--coral); box-shadow: inset 0 0 0 2px var(--coral); }
+    .nms-cell.compared { border-color: var(--blue); background: var(--blue-soft); color: var(--blue); box-shadow: inset 0 0 0 2px var(--blue); }
+    .nms-cell small { position: absolute; left: 4px; top: 4px; color: var(--muted); font: 10px/1 system-ui, sans-serif; }
+    .nms-explanation { display: grid; gap: 10px; }
+    .quantized {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+    }
+    .quantized .metric { min-width: 0; }
+    .quantized strong { font-size: 17px; }
+    .comparison {
+      padding: 12px;
+      background: var(--yellow-soft);
+      font: 650 14px/1.6 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      overflow-wrap: anywhere;
+    }
+    .nms-result { padding: 12px; border-left: 4px solid var(--green); background: var(--green-soft); font-size: 14px; line-height: 1.55; }
+    .nms-result.suppressed { border-left-color: var(--coral); background: var(--coral-soft); }
+    .nms-code { padding: 12px; background: var(--code); color: var(--code-text); overflow: auto; }
+    .nms-code pre { margin: 0; min-width: 290px; font: 12px/1.65 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+
+    .takeaway {
+      padding: 13px 15px;
+      border-left: 4px solid var(--blue);
+      background: var(--blue-soft);
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    @media (max-width: 1050px) {
+      .controls { grid-template-columns: 1fr 1fr; }
+      .presets { grid-column: 1 / -1; }
+      .stage { grid-template-columns: 1fr 1fr; }
+      .stage .panel:last-child { grid-column: 1 / -1; }
+      .nms-layout { grid-template-columns: 1fr 1fr; }
+      .nms-code { grid-column: 1 / -1; }
+    }
+    @media (max-width: 680px) {
+      .site-header { padding: 0 14px; }
+      .site-header span { display: none; }
+      main { width: min(100% - 20px, 1320px); padding-top: 14px; }
+      .title-row { align-items: start; flex-direction: column; gap: 10px; }
+      .controls, .stage, .nms-layout { grid-template-columns: 1fr; }
+      .presets, .stage .panel:last-child, .nms-code { grid-column: auto; }
+      .panel, .nms-section { padding: 12px; }
+      .vector-wrap { max-width: 390px; }
+      .section-head { display: grid; }
+      .quantized { grid-template-columns: 1fr; }
+      .readouts { grid-template-columns: 1fr 1fr; }
+    }
+    @media (max-width: 360px) {
+      .pixel { font-size: 11px; }
+      .btn { min-height: 42px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { transition: none !important; scroll-behavior: auto !important; }
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        color-scheme: dark;
+        --bg: #111416;
+        --surface: #1a1f22;
+        --surface-2: #252c30;
+        --text: #f4f6f7;
+        --muted: #aab4ba;
+        --border: #364046;
+        --blue: #62b6d1;
+        --blue-soft: #18343e;
+        --coral: #f18a70;
+        --coral-soft: #3b2723;
+        --green: #72c3a4;
+        --green-soft: #1d352c;
+        --yellow-soft: #36321f;
+        --code: #0d1012;
+        --code-text: #edf2f4;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header class="site-header">
+    <a href="../../">← 返回可视化目录</a>
+    <span>CS302 · Image gradients</span>
+  </header>
+
+  <main>
+    <div class="explainer" id="gradient-explainer">
+      <div class="title-row">
+        <div class="title-copy">
+          <h1>一个像素的梯度角度，到底指向哪里？</h1>
+          <p class="subtitle">调节 <code>Gx</code>、<code>Gy</code>，从局部亮度差分一路追踪到向量、角度和 NMS 比较方向。</p>
+        </div>
+        <div class="shape-badge mono">∇I = [Gx, Gy] · G ≥ 0 · θ ∈ [0°, 360°)</div>
+      </div>
+
+      <section class="controls" aria-label="梯度分量控制">
+        <label class="range-field" for="gx-input">
+          <span class="range-head"><span>水平变化 <code>Gx</code></span><strong id="gx-value">3.0</strong></span>
+          <input id="gx-input" type="range" min="-8" max="8" value="3" step="0.5">
+        </label>
+        <label class="range-field" for="gy-input">
+          <span class="range-head"><span>垂直变化 <code>Gy</code></span><strong id="gy-value">4.0</strong></span>
+          <input id="gy-input" type="range" min="-8" max="8" value="4" step="0.5">
+        </label>
+        <div class="presets" aria-label="梯度方向预设">
+          <button class="btn" type="button" data-gx="6" data-gy="0">向右 0°</button>
+          <button class="btn" type="button" data-gx="0" data-gy="6">向下 90°</button>
+          <button class="btn" type="button" data-gx="-6" data-gy="0">向左 180°</button>
+          <button class="btn" type="button" data-gx="0" data-gy="-6">向上 270°</button>
+          <button class="btn" type="button" data-gx="0" data-gy="0">平坦区域</button>
+        </div>
+      </section>
+
+      <section class="stage">
+        <article class="panel" aria-labelledby="patch-title">
+          <div class="panel-head">
+            <h2 id="patch-title">1. 局部亮度产生两个分量</h2>
+            <code>I[y, x]</code>
+          </div>
+          <p class="panel-note">每向右一格亮度改变 <code>Gx</code>，每向下一格改变 <code>Gy</code>。中心差分分别比较左右和上下。</p>
+          <div class="pixel-grid" id="pixel-grid" role="img" aria-label="五乘五局部亮度矩阵，中心和差分邻居被高亮"></div>
+          <div class="difference-lines">
+            <div class="difference x" id="gx-equation"></div>
+            <div class="difference y" id="gy-equation"></div>
+          </div>
+        </article>
+
+        <article class="panel" aria-labelledby="vector-title">
+          <div class="panel-head">
+            <h2 id="vector-title">2. 两个分量合成一个梯度向量</h2>
+            <code>∇I = (Gx, Gy)</code>
+          </div>
+          <p class="panel-note">箭头指向亮度增长最快的方向。拖动图中的箭头端点，或使用上方滑杆。</p>
+          <div class="vector-wrap" id="vector-wrap">
+            <svg id="vector-svg" viewBox="0 0 420 420" role="img" aria-labelledby="vector-svg-title vector-svg-desc">
+              <title id="vector-svg-title">图像梯度向量</title>
+              <desc id="vector-svg-desc">水平分量 Gx、向下的垂直分量 Gy、合成向量、梯度方向角和与梯度垂直的边缘方向。</desc>
+              <defs>
+                <marker id="gradient-arrowhead" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth">
+                  <path d="M0,0 L0,6 L9,3 z" fill="var(--coral)"></path>
+                </marker>
+              </defs>
+              <rect class="plot-frame" x="22" y="22" width="376" height="376"></rect>
+              <g id="grid-lines"></g>
+              <line class="axis-line" x1="35" y1="210" x2="390" y2="210"></line>
+              <line class="axis-line" x1="210" y1="35" x2="210" y2="390"></line>
+              <text class="svg-label" x="371" y="200">+x 右</text>
+              <text class="svg-label" x="220" y="386">+y 下</text>
+              <line class="edge-line" id="edge-line" x1="210" y1="210" x2="210" y2="210"></line>
+              <line class="projection-x" id="projection-x" x1="210" y1="210" x2="210" y2="210"></line>
+              <line class="projection-y" id="projection-y" x1="210" y1="210" x2="210" y2="210"></line>
+              <path class="angle-arc" id="angle-arc" d=""></path>
+              <line class="gradient-arrow" id="gradient-arrow" x1="210" y1="210" x2="210" y2="210" marker-end="url(#gradient-arrowhead)"></line>
+              <circle class="origin-dot" cx="210" cy="210" r="4"></circle>
+              <circle class="tip-dot" id="tip-dot" cx="210" cy="210" r="8"></circle>
+              <text class="svg-x" id="gx-label" x="210" y="210">Gx</text>
+              <text class="svg-y" id="gy-label" x="210" y="210">Gy</text>
+              <text class="svg-angle" id="angle-label" x="210" y="210">θ</text>
+              <text class="svg-muted" id="edge-label" x="210" y="210">边缘方向</text>
+            </svg>
+          </div>
+        </article>
+
+        <article class="panel" aria-labelledby="meaning-title">
+          <div class="panel-head">
+            <h2 id="meaning-title">3. 长度与角度各回答一个问题</h2>
+            <code>G, θ</code>
+          </div>
+          <div class="readouts">
+            <div class="metric"><span>梯度大小 G</span><strong id="magnitude-value">5.00</strong></div>
+            <div class="metric"><span>方向 θ</span><strong id="theta-value">53.13°</strong></div>
+          </div>
+          <div class="formula-box">
+            <strong>边缘有多强？看向量长度</strong>
+            <code id="magnitude-equation">G = √(3² + 4²) = 5</code>
+          </div>
+          <div class="formula-box">
+            <strong>亮度朝哪里增长？看向量角度</strong>
+            <code id="theta-equation">θ = degrees(atan2(4, 3)) % 360 = 53.13°</code>
+          </div>
+          <div class="quadrant-message" id="quadrant-message"></div>
+          <div class="direction-list" aria-label="图像坐标中的主方向">
+            <div class="direction-row"><code>0°</code><span>向右：Gx &gt; 0，Gy = 0</span></div>
+            <div class="direction-row"><code>90°</code><span>向下：图像的 y 坐标向下增加</span></div>
+            <div class="direction-row"><code>180°</code><span>向左：Gx &lt; 0，Gy = 0</span></div>
+            <div class="direction-row"><code>270°</code><span>向上：Gy &lt; 0</span></div>
+          </div>
+        </article>
+      </section>
+
+      <section class="nms-section" aria-labelledby="nms-title">
+        <div class="section-head">
+          <h2 id="nms-title">4. NMS 为什么要使用这个角度？</h2>
+          <p>梯度垂直穿过边缘；因此沿梯度方向比较，才能从粗响应中留下峰值。</p>
+        </div>
+        <div class="nms-layout">
+          <div class="nms-grid" id="nms-grid" role="img" aria-label="三乘三梯度大小邻域，中心和沿量化梯度方向的两个邻居被高亮"></div>
+          <div class="nms-explanation">
+            <div class="quantized">
+              <div class="metric"><span>原始 θ</span><strong id="nms-theta">53.1°</strong></div>
+              <div class="metric"><span>θ mod 180</span><strong id="nms-mod">53.1°</strong></div>
+              <div class="metric"><span>量化方向</span><strong id="nms-bin">45°</strong></div>
+            </div>
+            <div class="comparison" id="nms-comparison"></div>
+            <div class="nms-result" id="nms-result"></div>
+          </div>
+          <div class="nms-code" aria-label="非极大值抑制伪代码">
+            <pre><code>angle = theta[i, j] % 180
+
+# 依据 0° / 45° / 90° / 135°
+# 选择梯度方向两侧的邻居
+q, r = neighbors_along_gradient(...)
+
+if G[i, j] &gt;= q and G[i, j] &gt;= r:
+    out[i, j] = G[i, j]
+else:
+    out[i, j] = 0</code></pre>
+          </div>
+        </div>
+      </section>
+
+      <div class="takeaway"><strong>一句话：</strong><code>Gx</code> 和 <code>Gy</code> 是一个像素处的两个坐标分量；<code>G</code> 是这支箭头的长度；<code>theta</code> 是它从向右方向开始、在图像坐标中顺时针量出的朝向。它指向亮度增加最快的方向，而真实边缘方向与它垂直。</div>
+    </div>
+  </main>
+
+  <script>
+    (() => {
+      const root = document.getElementById('gradient-explainer');
+      const gxInput = root.querySelector('#gx-input');
+      const gyInput = root.querySelector('#gy-input');
+      const pixelGrid = root.querySelector('#pixel-grid');
+      const vectorWrap = root.querySelector('#vector-wrap');
+      const svg = root.querySelector('#vector-svg');
+      const center = 210;
+      const scale = 20;
+      const maxComponent = 8;
+      const nmsValues = [6.5, 7.4, 3.0, 4.0, 0, 6.1, 2.5, 5.7, 6.8];
+      const directionMap = {
+        0: [[0, -1], [0, 1], '左 / 右'],
+        45: [[-1, -1], [1, 1], '左上 / 右下'],
+        90: [[-1, 0], [1, 0], '上 / 下'],
+        135: [[-1, 1], [1, -1], '右上 / 左下']
+      };
+
+      function fmt(value, digits = 1) {
+        const clean = Math.abs(value) < 1e-9 ? 0 : value;
+        return clean.toFixed(digits);
+      }
+
+      function thetaFor(gx, gy) {
+        return (Math.atan2(gy, gx) * 180 / Math.PI + 360) % 360;
+      }
+
+      function quantize(theta) {
+        const mod = theta % 180;
+        if (mod < 22.5 || mod >= 157.5) return 0;
+        if (mod < 67.5) return 45;
+        if (mod < 112.5) return 90;
+        return 135;
+      }
+
+      function quadrantText(gx, gy, theta, magnitude) {
+        if (magnitude < 1e-9) return '<strong>平坦区域：</strong>Gx = Gy = 0，因此没有亮度增长方向。NumPy 的 atan2(0, 0) 返回 0°，但这个方向没有实际意义。';
+        const horizontal = gx > 0 ? '向右' : gx < 0 ? '向左' : '';
+        const vertical = gy > 0 ? '向下' : gy < 0 ? '向上' : '';
+        const phrase = horizontal && vertical ? `${horizontal}${vertical}` : horizontal || vertical;
+        return `<strong>${phrase}，θ = ${fmt(theta, 2)}°：</strong>atan2 同时查看 Gy 和 Gx 的正负，因此能判断箭头位于哪个象限；普通 arctan(Gy/Gx) 做不到这一点。`;
+      }
+
+      function buildGridLines() {
+        const group = root.querySelector('#grid-lines');
+        for (let p = 50; p <= 370; p += 40) {
+          const v = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+          v.setAttribute('class', 'grid-line');
+          v.setAttribute('x1', p); v.setAttribute('x2', p); v.setAttribute('y1', 22); v.setAttribute('y2', 398);
+          const h = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+          h.setAttribute('class', 'grid-line');
+          h.setAttribute('x1', 22); h.setAttribute('x2', 398); h.setAttribute('y1', p); h.setAttribute('y2', p);
+          group.append(v, h);
+        }
+      }
+
+      function renderPatch(gx, gy) {
+        pixelGrid.replaceChildren();
+        const base = 50;
+        for (let y = -2; y <= 2; y++) {
+          for (let x = -2; x <= 2; x++) {
+            const value = base + gx * x + gy * y;
+            const cell = document.createElement('div');
+            cell.className = 'pixel';
+            if (x === 0 && y === 0) cell.classList.add('center');
+            if (y === 0 && Math.abs(x) === 1) cell.classList.add('x-neighbor');
+            if (x === 0 && Math.abs(y) === 1) cell.classList.add('y-neighbor');
+            cell.textContent = fmt(value, 1);
+            cell.setAttribute('aria-label', `相对坐标 x ${x}, y ${y}, 亮度 ${fmt(value, 1)}`);
+            pixelGrid.appendChild(cell);
+          }
+        }
+        const left = base - gx, right = base + gx, up = base - gy, down = base + gy;
+        root.querySelector('#gx-equation').textContent = `Gx = (右 - 左) / 2 = (${fmt(right)} - ${fmt(left)}) / 2 = ${fmt(gx)}`;
+        root.querySelector('#gy-equation').textContent = `Gy = (下 - 上) / 2 = (${fmt(down)} - ${fmt(up)}) / 2 = ${fmt(gy)}`;
+      }
+
+      function arcPath(theta, radius) {
+        if (theta < 0.1 || theta > 359.9) return '';
+        const capped = Math.min(theta, 359.8);
+        const startX = center + radius;
+        const startY = center;
+        const endRad = capped * Math.PI / 180;
+        const endX = center + radius * Math.cos(endRad);
+        const endY = center + radius * Math.sin(endRad);
+        const largeArc = capped > 180 ? 1 : 0;
+        return `M ${startX} ${startY} A ${radius} ${radius} 0 ${largeArc} 1 ${endX} ${endY}`;
+      }
+
+      function renderVector(gx, gy, theta, magnitude) {
+        const tipX = center + gx * scale;
+        const tipY = center + gy * scale;
+        const arrow = root.querySelector('#gradient-arrow');
+        arrow.setAttribute('x2', tipX); arrow.setAttribute('y2', tipY);
+        root.querySelector('#tip-dot').setAttribute('cx', tipX);
+        root.querySelector('#tip-dot').setAttribute('cy', tipY);
+
+        const px = root.querySelector('#projection-x');
+        px.setAttribute('x2', tipX); px.setAttribute('y2', center);
+        const py = root.querySelector('#projection-y');
+        py.setAttribute('x1', tipX); py.setAttribute('y1', center);
+        py.setAttribute('x2', tipX); py.setAttribute('y2', tipY);
+
+        const gxLabel = root.querySelector('#gx-label');
+        gxLabel.setAttribute('x', (center + tipX) / 2 - 12);
+        gxLabel.setAttribute('y', center - 8);
+        gxLabel.textContent = `Gx=${fmt(gx)}`;
+        const gyLabel = root.querySelector('#gy-label');
+        gyLabel.setAttribute('x', tipX + 8);
+        gyLabel.setAttribute('y', (center + tipY) / 2);
+        gyLabel.textContent = `Gy=${fmt(gy)}`;
+
+        const radius = 45;
+        root.querySelector('#angle-arc').setAttribute('d', magnitude < 1e-9 ? '' : arcPath(theta, radius));
+        const angleRad = theta * Math.PI / 180;
+        const labelRadius = 67;
+        const angleLabel = root.querySelector('#angle-label');
+        angleLabel.setAttribute('x', center + labelRadius * Math.cos(angleRad) + 4);
+        angleLabel.setAttribute('y', center + labelRadius * Math.sin(angleRad) - 4);
+        angleLabel.textContent = magnitude < 1e-9 ? 'θ 无意义' : `θ=${fmt(theta, 1)}°`;
+
+        const edge = root.querySelector('#edge-line');
+        const edgeLabel = root.querySelector('#edge-label');
+        if (magnitude < 1e-9) {
+          edge.setAttribute('x1', center); edge.setAttribute('y1', center);
+          edge.setAttribute('x2', center); edge.setAttribute('y2', center);
+          edgeLabel.textContent = '';
+        } else {
+          const ux = gx / magnitude, uy = gy / magnitude;
+          const ex = -uy * 85, ey = ux * 85;
+          edge.setAttribute('x1', center - ex); edge.setAttribute('y1', center - ey);
+          edge.setAttribute('x2', center + ex); edge.setAttribute('y2', center + ey);
+          edgeLabel.setAttribute('x', center - ex + 6);
+          edgeLabel.setAttribute('y', center - ey - 7);
+          edgeLabel.textContent = '边缘方向（与梯度垂直）';
+        }
+      }
+
+      function renderNms(theta, magnitude) {
+        const bin = quantize(theta);
+        const [aOffset, bOffset, names] = directionMap[bin];
+        const index = ([dy, dx]) => (1 + dy) * 3 + (1 + dx);
+        const aIndex = index(aOffset), bIndex = index(bOffset);
+        const values = nmsValues.slice();
+        values[4] = magnitude;
+        const labels = ['左上', '上', '右上', '左', '中心', '右', '左下', '下', '右下'];
+        const grid = root.querySelector('#nms-grid');
+        grid.replaceChildren();
+        values.forEach((value, i) => {
+          const cell = document.createElement('div');
+          cell.className = 'nms-cell';
+          if (i === 4) cell.classList.add('center');
+          if (i === aIndex || i === bIndex) cell.classList.add('compared');
+          const small = document.createElement('small');
+          small.textContent = labels[i];
+          const number = document.createElement('span');
+          number.textContent = fmt(value, 1);
+          cell.append(small, number);
+          grid.appendChild(cell);
+        });
+
+        const mod = theta % 180;
+        const a = values[aIndex], b = values[bIndex];
+        const keep = magnitude >= a && magnitude >= b;
+        root.querySelector('#nms-theta').textContent = `${fmt(theta, 1)}°`;
+        root.querySelector('#nms-mod').textContent = `${fmt(mod, 1)}°`;
+        root.querySelector('#nms-bin').textContent = `${bin}°`;
+        root.querySelector('#nms-comparison').textContent = `沿 ${bin}° 比较 ${names}：${fmt(magnitude, 2)} ≥ ${fmt(a, 1)} 且 ${fmt(magnitude, 2)} ≥ ${fmt(b, 1)}`;
+        const result = root.querySelector('#nms-result');
+        result.classList.toggle('suppressed', !keep);
+        result.innerHTML = keep
+          ? `<strong>保留中心：</strong>它不小于梯度方向两侧的值，是局部峰值。NMS 输出 ${fmt(magnitude, 2)}。`
+          : `<strong>抑制中心：</strong>梯度方向至少有一个邻居更强，中心不是峰值。NMS 输出 0。`;
+      }
+
+      function render() {
+        const gx = Number(gxInput.value);
+        const gy = Number(gyInput.value);
+        const magnitude = Math.hypot(gx, gy);
+        const theta = thetaFor(gx, gy);
+        root.querySelector('#gx-value').textContent = fmt(gx);
+        root.querySelector('#gy-value').textContent = fmt(gy);
+        root.querySelector('#magnitude-value').textContent = fmt(magnitude, 2);
+        root.querySelector('#theta-value').textContent = `${fmt(theta, 2)}°`;
+        root.querySelector('#magnitude-equation').textContent = `G = √(${fmt(gx)}² + ${fmt(gy)}²) = ${fmt(magnitude, 2)}`;
+        root.querySelector('#theta-equation').textContent = `θ = degrees(atan2(${fmt(gy)}, ${fmt(gx)})) % 360 = ${fmt(theta, 2)}°`;
+        root.querySelector('#quadrant-message').innerHTML = quadrantText(gx, gy, theta, magnitude);
+        renderPatch(gx, gy);
+        renderVector(gx, gy, theta, magnitude);
+        renderNms(theta, magnitude);
+      }
+
+      function setFromPointer(event) {
+        const rect = svg.getBoundingClientRect();
+        const x = (event.clientX - rect.left) / rect.width * 420;
+        const y = (event.clientY - rect.top) / rect.height * 420;
+        const gx = Math.max(-maxComponent, Math.min(maxComponent, Math.round((x - center) / scale * 2) / 2));
+        const gy = Math.max(-maxComponent, Math.min(maxComponent, Math.round((y - center) / scale * 2) / 2));
+        gxInput.value = gx;
+        gyInput.value = gy;
+        render();
+      }
+
+      let dragging = false;
+      vectorWrap.addEventListener('pointerdown', event => {
+        dragging = true;
+        vectorWrap.setPointerCapture(event.pointerId);
+        setFromPointer(event);
+      });
+      vectorWrap.addEventListener('pointermove', event => { if (dragging) setFromPointer(event); });
+      vectorWrap.addEventListener('pointerup', () => { dragging = false; });
+      vectorWrap.addEventListener('pointercancel', () => { dragging = false; });
+      gxInput.addEventListener('input', render);
+      gyInput.addEventListener('input', render);
+      root.querySelectorAll('[data-gx]').forEach(button => {
+        button.addEventListener('click', () => {
+          gxInput.value = button.dataset.gx;
+          gyInput.value = button.dataset.gy;
+          render();
+        });
+      });
+
+      buildGridLines();
+      render();
+    })();
+  </script>
+</body>
+</html>

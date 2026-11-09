@@ -230,6 +230,42 @@ h3 { margin-bottom: 10px; font-size: 22px; }
   font: 650 24px/1 ui-monospace, SFMono-Regular, Menlo, monospace;
 }
 
+.gradient-preview { flex-direction: column; gap: 18px; }
+.gradient-plane {
+  position: relative;
+  width: 142px;
+  height: 142px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+}
+.gradient-axis-x,
+.gradient-axis-y,
+.gradient-edge,
+.gradient-vector {
+  position: absolute;
+  display: block;
+  left: 50%;
+  top: 50%;
+  transform-origin: left center;
+}
+.gradient-axis-x { width: 112px; height: 1px; left: 11%; background: var(--muted); }
+.gradient-axis-y { width: 112px; height: 1px; left: 50%; top: 11%; transform: rotate(90deg); background: var(--muted); }
+.gradient-edge { width: 92px; height: 4px; transform: translate(-46px, -2px) rotate(127deg); background: var(--green); opacity: .65; }
+.gradient-vector { width: 72px; height: 4px; transform: rotate(37deg); background: var(--coral); }
+.gradient-vector::after {
+  content: "";
+  position: absolute;
+  right: -2px;
+  top: -5px;
+  width: 0;
+  height: 0;
+  border-top: 7px solid transparent;
+  border-bottom: 7px solid transparent;
+  border-left: 11px solid var(--coral);
+}
+.gradient-plane b { position: absolute; left: 82px; top: 67px; color: var(--coral); font: 650 16px/1 ui-monospace, monospace; }
+.gradient-formula { color: var(--blue); font: 650 14px/1 ui-monospace, SFMono-Regular, Menlo, monospace; }
+
 .visual-body { padding: 24px; }
 .visual-body p { margin-bottom: 22px; color: var(--muted); line-height: 1.65; }
 .meta { display: flex; flex-wrap: wrap; gap: 8px 16px; margin-bottom: 13px; color: var(--blue); font-size: 13px; font-weight: 650; }
