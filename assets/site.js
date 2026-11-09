@@ -6,12 +6,18 @@
   function createCard(item) {
     const link = document.createElement('a');
     link.className = 'visual-card';
-    link.href = `${item.path}?v=3`;
+    link.href = `${item.path}?v=4`;
 
     const preview = document.createElement('div');
-    preview.className = 'visual-preview fourier-preview';
+    preview.className = 'visual-preview';
     preview.setAttribute('aria-hidden', 'true');
-    preview.innerHTML = '<span class="preview-image">I(x,y)</span><span class="preview-arrow">→</span><span class="preview-spectrum"><i></i></span><span class="preview-arrow">→</span><span class="preview-image blurred">Î(x,y)</span>';
+    if (item.slug === 'convolution-pixel-accumulation') {
+      preview.classList.add('convolution-preview');
+      preview.innerHTML = '<span class="preview-grid input-grid"><i>2</i><i>1</i><i>0</i><i>3</i><i>5</i><i>2</i><i>0</i><i>1</i><i>4</i></span><span class="preview-operator">×</span><span class="preview-grid kernel-grid"><i>0</i><i>0</i><i>1</i><i>0</i><i>0</i><i>0</i><i>1</i><i>0</i><i>1</i></span><span class="preview-operator">=</span><span class="preview-sum">Σ</span>';
+    } else {
+      preview.classList.add('fourier-preview');
+      preview.innerHTML = '<span class="preview-image">I(x,y)</span><span class="preview-arrow">→</span><span class="preview-spectrum"><i></i></span><span class="preview-arrow">→</span><span class="preview-image blurred">Î(x,y)</span>';
+    }
 
     const body = document.createElement('div');
     body.className = 'visual-body';

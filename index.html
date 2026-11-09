@@ -6,7 +6,7 @@
   <meta name="description" content="用交互动画解释课程中的抽象概念。">
   <title>Course Visualization Lab</title>
   <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="assets/site.css?v=2">
+  <link rel="stylesheet" href="assets/site.css?v=3">
 </head>
 <body>
   <header class="site-header">
@@ -25,7 +25,7 @@
         <p class="lede">用可操作的图形、动画和参数实验理解课程知识，而不只是记住公式。</p>
       </div>
       <div class="count" aria-live="polite">
-        <strong id="visual-count">1</strong>
+        <strong id="visual-count">2</strong>
         <span>个可视化</span>
       </div>
     </section>
@@ -36,6 +36,21 @@
         <span class="status"><span class="status-dot" aria-hidden="true"></span>持续更新</span>
       </div>
       <div id="visualization-grid" class="visualization-grid">
+        <a class="visual-card" href="visualizations/convolution-pixel-accumulation/?v=4">
+          <div class="visual-preview convolution-preview" aria-hidden="true">
+            <span class="preview-grid input-grid"><i>2</i><i>1</i><i>0</i><i>3</i><i>5</i><i>2</i><i>0</i><i>1</i><i>4</i></span>
+            <span class="preview-operator">×</span>
+            <span class="preview-grid kernel-grid"><i>0</i><i>0</i><i>1</i><i>0</i><i>0</i><i>0</i><i>1</i><i>0</i><i>1</i></span>
+            <span class="preview-operator">=</span>
+            <span class="preview-sum">Σ</span>
+          </div>
+          <div class="visual-body">
+            <div class="meta"><span>CS302</span><span>卷积与滤波</span></div>
+            <h3>卷积：一个输出像素的 9 次乘加</h3>
+            <p>固定一个输出坐标，逐项追踪 kernel 翻转、坐标映射、零填充与 3×3 累加。</p>
+            <span class="open-label">打开动画 <span aria-hidden="true">↗</span></span>
+          </div>
+        </a>
         <a class="visual-card" href="visualizations/fourier-lowpass/?v=3">
           <div class="visual-preview fourier-preview" aria-hidden="true">
             <span class="preview-image">I(x,y)</span>
@@ -60,6 +75,6 @@
     <span>Course Visualization Lab</span>
     <span>Built for learning by doing.</span>
   </footer>
-  <script src="assets/site.js?v=2" defer></script>
+  <script src="assets/site.js?v=3" defer></script>
 </body>
 </html>

@@ -7,6 +7,7 @@ Live site: <https://yj244-jyt.github.io/course-visualization-lab/>
 ## Current visualizations
 
 - Fourier transform, frequency centering, circular low-pass masks, and inverse reconstruction
+- Four-loop 2D convolution, kernel flipping, zero padding, coordinate mapping, and per-pixel accumulation
 
 ## Repository structure
 
