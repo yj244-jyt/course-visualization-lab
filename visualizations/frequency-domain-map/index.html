@@ -27,27 +27,30 @@
     .concept:last-child { border-right:0; }
     .concept strong { font-size:14px; }
     .concept span { color:var(--muted); font-size:12px; line-height:1.4; }
-    .workbench { display:grid; grid-template-columns:minmax(0,1fr) 296px; gap:18px; align-items:start; }
+    .workbench { display:grid; grid-template-columns:1fr; gap:18px; align-items:start; }
     .stage { min-width:0; display:grid; gap:12px; }
-    .stage-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; }
+    .source-strip { display:flex; align-items:center; gap:14px; padding:10px 12px; border:1px solid var(--line); background:var(--surface); }
+    .source-strip img { width:146px; height:82px; object-fit:cover; display:block; border:1px solid #cbd3d6; background:#11181b; }
+    .source-strip-copy { display:grid; gap:4px; }
+    .source-strip-copy strong { font-size:14px; }
+    .source-strip-copy span { color:var(--muted); font-size:12px; line-height:1.4; }
+    .stage-grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:12px; align-items:start; }
     .panel { min-width:0; border:1px solid var(--line); background:var(--surface); }
     .panel-head { min-height:50px; padding:10px 12px 8px; display:flex; align-items:start; justify-content:space-between; gap:10px; border-bottom:1px solid var(--line); }
     .panel-title { display:grid; gap:2px; }
     .panel-title span { color:var(--muted); font-size:12px; }
     .panel-tag { flex:0 0 auto; padding:3px 6px; color:var(--muted); background:var(--bg); border:1px solid var(--line); font:11px ui-monospace,SFMono-Regular,Menlo,monospace; }
     .canvas-wrap { aspect-ratio:1; min-height:180px; padding:12px; position:relative; }
-    .photo-wrap { aspect-ratio:640/427; padding:12px 12px 0; }
-    .photo-wrap img { display:block; width:100%; height:100%; object-fit:cover; border:1px solid #cbd3d6; background:#11181b; }
-    .sample-wrap { min-height:150px; }
     canvas { width:100%; height:100%; display:block; background:#11181b; border:1px solid #cbd3d6; image-rendering:pixelated; }
     .canvas-caption { min-height:39px; padding:0 12px 11px; color:var(--muted); font-size:12px; line-height:1.45; }
-    .arrow-row { display:grid; grid-template-columns:1fr 44px 1fr 44px 1fr; align-items:center; color:var(--muted); font-size:12px; text-align:center; }
+    .arrow-row { display:grid; grid-template-columns:1fr 26px 1fr 26px 1fr 26px 1fr; align-items:center; color:var(--muted); font-size:12px; text-align:center; }
     .arrow-row .arrow { display:grid; place-items:center; color:var(--blue); font-size:24px; }
     .arrow-row .label { padding:5px; border:1px solid var(--line); background:var(--surface); }
     .note { padding:12px 14px; border-left:3px solid var(--coral); background:var(--coral-soft); line-height:1.55; font-size:13px; }
     .note strong { color:#824333; }
     .controls { border:1px solid var(--line); background:var(--surface); padding:15px; display:grid; gap:16px; }
     .controls h2 { font-size:17px; }
+    .controls-inner { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:14px; }
     .control-group { display:grid; gap:7px; }
     .control-label { display:flex; align-items:baseline; justify-content:space-between; gap:10px; font-size:13px; font-weight:650; }
     .value { color:var(--blue); font-variant-numeric:tabular-nums; }
@@ -60,6 +63,7 @@
     button:focus-visible,select:focus-visible,input:focus-visible { outline:3px solid var(--blue); outline-offset:2px; }
     button.is-active { border-color:var(--blue); background:var(--blue); color:#fff; }
     .step-list { display:grid; gap:6px; }
+    .step-list, .explain, .source { grid-column:1/-1; }
     .step-button { display:grid; grid-template-columns:24px 1fr; align-items:center; text-align:left; gap:7px; }
     .step-number { width:22px; height:22px; display:grid; place-items:center; border:1px solid currentColor; border-radius:50%; font-size:11px; }
     .step-button.is-active { background:var(--blue-soft); color:var(--blue); border-color:var(--blue); }
@@ -71,8 +75,8 @@
     .source { color:var(--muted); font-size:12px; }
     .source a { color:var(--blue); }
     .sr-only { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0; }
-    @media (max-width:940px) { .workbench { grid-template-columns:1fr; } .controls { order:-1; } .controls-inner { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px; } .controls h2,.step-list,.explain,.source { grid-column:1/-1; } }
-    @media (max-width:640px) { .site-header { padding:0 15px; } .site-header span { display:none; } main { width:min(calc(100% - 24px),1360px); padding-top:16px; } .concept-strip { grid-template-columns:repeat(2,minmax(0,1fr)); } .concept:nth-child(2) { border-right:0; } .concept:nth-child(-n+2) { border-bottom:1px solid var(--line); } .stage-grid { grid-template-columns:1fr; } .arrow-row { grid-template-columns:1fr; gap:4px; } .arrow-row .arrow { transform:rotate(90deg); min-height:22px; } .controls-inner { grid-template-columns:1fr; } .controls h2,.step-list,.explain,.source { grid-column:auto; } .canvas-wrap { min-height:240px; } }
+    @media (max-width:1120px) { .stage-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } .controls-inner { grid-template-columns:repeat(2,minmax(0,1fr)); } .controls h2,.step-list,.explain,.source { grid-column:1/-1; } }
+    @media (max-width:640px) { .site-header { padding:0 15px; } .site-header span { display:none; } main { width:min(calc(100% - 24px),1360px); padding-top:16px; } .concept-strip { grid-template-columns:repeat(2,minmax(0,1fr)); } .concept:nth-child(2) { border-right:0; } .concept:nth-child(-n+2) { border-bottom:1px solid var(--line); } .stage-grid { grid-template-columns:1fr; } .source-strip { align-items:start; } .source-strip img { width:112px; height:72px; } .arrow-row { grid-template-columns:1fr; gap:4px; } .arrow-row .arrow { transform:rotate(90deg); min-height:22px; } .controls-inner { grid-template-columns:1fr; } .controls h2,.step-list,.explain,.source { grid-column:auto; } .canvas-wrap { min-height:240px; } }
     @media (prefers-color-scheme: dark) { :root { color-scheme:dark; --bg:#111618; --surface:#182023; --ink:#edf3f5; --muted:#aebcc1; --line:#354348; --blue:#71c4dc; --blue-soft:#173640; --coral:#f08b70; --coral-soft:#352521; --green:#72c399; } .panel-tag,.explain { background:#202b2f; } .note strong { color:#ffb39c; } select,button { background:var(--surface); color:var(--ink); } }
   </style>
 </head>
@@ -94,12 +98,12 @@
 
     <div class="workbench">
       <section class="stage" aria-label="图像与频域对应关系">
+        <div class="source-strip"><img id="source-photo" src="assets/urban-street.jpg" alt="高分辨率城市街景原照片"><div class="source-strip-copy"><strong>原始照片（高分辨率素材）</strong><span>640 × 427 RGB → 64 × 64 灰度采样 → 进入二维 Fourier transform</span></div></div>
         <div class="stage-grid">
           <article class="panel" data-panel="input">
-            <div class="panel-head"><div class="panel-title"><h2>输入图像 I<sub>p</sub>(x,y)</h2><span>先在空间域处理原照片</span></div><span class="panel-tag">64 × 64</span></div>
-            <div class="photo-wrap"><img id="source-photo" src="assets/urban-street.jpg" alt="高分辨率城市街景原照片"></div>
-            <div class="canvas-wrap sample-wrap"><canvas id="input-canvas" width="256" height="256" aria-label="用于傅里叶变换的 64×64 处理采样"></canvas></div>
-            <p class="canvas-caption" id="input-caption">上方是高分辨率原照片；下方 64×64 采样用于演示傅里叶变换。空间域处理会先改变采样，再计算频谱。</p>
+            <div class="panel-head"><div class="panel-title"><h2>输入图像 I<sub>p</sub>(x,y)</h2><span>处理后，真正送入 FFT 的图像</span></div><span class="panel-tag">64 × 64</span></div>
+            <div class="canvas-wrap"><canvas id="input-canvas" width="256" height="256" aria-label="用于傅里叶变换的 64×64 处理采样"></canvas></div>
+            <p class="canvas-caption" id="input-caption">这是空间域处理后的输入，不是逆变换结果；它会被转换到频率坐标。</p>
           </article>
           <article class="panel" data-panel="spectrum">
             <div class="panel-head"><div class="panel-title"><h2>幅度谱 |F<sub>p</sub>(u,v)|</h2><span>fftshift 后，低频在中心</span></div><span class="panel-tag">对数亮度</span></div>
@@ -114,10 +118,10 @@
           <article class="panel" data-panel="output">
             <div class="panel-head"><div class="panel-title"><h2>逆变换结果 g(x,y)</h2><span>F<sub>p</sub> · H → F<sub>g</sub> → IFFT</span></div><span class="panel-tag" id="output-tag">输出</span></div>
             <div class="canvas-wrap"><canvas id="output-canvas" width="256" height="256" aria-label="频域滤波后的逆变换图像"></canvas></div>
-            <p class="canvas-caption" id="output-caption">结果仍是同一坐标系中的照片；只是它的细节组成被重新配平了。</p>
+            <p class="canvas-caption" id="output-caption">这是 IFFT 从 F<sub>p</sub> · H 重建出的输出，不会直接等于上面的输入图像。</p>
           </article>
         </div>
-        <div class="arrow-row" aria-hidden="true"><span class="label">处理后的原图</span><span class="arrow">→</span><span class="label">二维 Fourier transform</span><span class="arrow">→</span><span class="label">乘上 H(u,v)，再 IFFT</span></div>
+        <div class="arrow-row" aria-hidden="true"><span class="label">输入 I<sub>p</sub>(x,y)</span><span class="arrow">→</span><span class="label">FFT：F<sub>p</sub>(u,v)</span><span class="arrow">→</span><span class="label">乘 H(u,v)</span><span class="arrow">→</span><span class="label">IFFT：g(x,y)</span></div>
         <div class="note"><strong>别把坐标混在一起：</strong>原图里的 (x,y) 是“哪里”；频谱里的 (u,v) 是“变化有多快、朝哪个方向”。频谱中心是低频，不是原照片的中心像素。</div>
         <div class="legend"><span class="legend-item"><i class="swatch low"></i>频谱白：低频 / 慢变化</span><span class="legend-item"><i class="swatch high"></i>频谱黑：高频 / 边缘</span><span class="legend-item"><i class="swatch pass"></i>H 白：保留</span><span class="legend-item"><i class="swatch stop"></i>H 黑：抑制</span></div>
       </section>
@@ -186,7 +190,8 @@
     function setStep(step) { state.step = step; document.querySelectorAll('.step-button').forEach(button => button.classList.toggle('is-active', Number(button.dataset.step) === step)); explain.textContent = stepText[step]; document.querySelectorAll('[data-panel]').forEach(panel => panel.style.borderColor = 'var(--line)'); const panel = document.querySelector(`[data-panel="${['input','spectrum','filter','output'][step - 1]}"]`); if (panel) panel.style.borderColor = 'var(--blue)'; }
     function seedFallback() { for (let y = 0; y < N; y += 1) for (let x = 0; x < N; x += 1) state.raw[index(x, y)] = clamp(.25 + .3 * Math.sin(x / 5) + .25 * Math.cos(y / 9) + (x > 32 && y > 28 ? .2 : 0)); drawPhoto(inputCanvas, state.raw); drawPhoto(outputCanvas, state.raw); const previewSpectrum = new Float32Array(N * N); for (let i = 0; i < previewSpectrum.length; i += 1) previewSpectrum[i] = state.raw[i]; drawValues(spectrumCanvas, previewSpectrum, 'spectrum'); const previewFilter = new Float32Array(N * N); for (let y = 0; y < N; y += 1) for (let x = 0; x < N; x += 1) previewFilter[index(x, y)] = frequencyRadius(x, y) < 14 ? 1 : 0; drawValues(filterCanvas, previewFilter, 'filter'); }
     function loadSource() { seedFallback(); setTimeout(update, 0); const image = new Image(); image.onload = () => { const temp = document.createElement('canvas'); temp.width = N; temp.height = N; const ctx = temp.getContext('2d'); ctx.drawImage(image, 0, 0, N, N); const pixels = ctx.getImageData(0, 0, N, N).data; for (let i = 0; i < N * N; i += 1) state.raw[i] = (pixels[i * 4] * .299 + pixels[i * 4 + 1] * .587 + pixels[i * 4 + 2] * .114) / 255; update(); }; image.onerror = () => update(); image.src = 'assets/urban-street.jpg'; }
-    [spatialSelect, filterSelect, cutoffRange, contrastRange].forEach(control => control.addEventListener('input', update));
+    [spatialSelect, filterSelect].forEach(control => { control.addEventListener('input', update); control.addEventListener('change', update); });
+    [cutoffRange, contrastRange].forEach(control => control.addEventListener('input', update));
     document.querySelectorAll('.step-button').forEach(button => button.addEventListener('click', () => setStep(Number(button.dataset.step))));
     document.querySelector('#reset-btn').addEventListener('click', () => { spatialSelect.value = 'raw'; filterSelect.value = 'lowpass'; cutoffRange.value = '14'; contrastRange.value = '1'; setStep(1); update(); });
     document.querySelector('#animate-btn').addEventListener('click', () => { if (state.animating) return; state.animating = true; let current = 1; const button = document.querySelector('#animate-btn'); button.textContent = '流程播放中…'; const timer = setInterval(() => { setStep(current); current += 1; if (current > 4) { clearInterval(timer); state.animating = false; button.textContent = '播放一次流程'; } }, 850); });
