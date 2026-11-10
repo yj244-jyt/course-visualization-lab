@@ -35,13 +35,13 @@
     .source-strip-copy strong { font-size:14px; }
     .source-strip-copy span { color:var(--muted); font-size:12px; line-height:1.4; }
     .stage-grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:12px; align-items:start; }
-    .panel { min-width:0; border:1px solid var(--line); background:var(--surface); }
+    .panel { min-width:0; border:1px solid var(--line); background:var(--surface); overflow:hidden; }
     .panel-head { min-height:50px; padding:10px 12px 8px; display:flex; align-items:start; justify-content:space-between; gap:10px; border-bottom:1px solid var(--line); }
     .panel-title { display:grid; gap:2px; }
     .panel-title span { color:var(--muted); font-size:12px; }
     .panel-tag { flex:0 0 auto; padding:3px 6px; color:var(--muted); background:var(--bg); border:1px solid var(--line); font:11px ui-monospace,SFMono-Regular,Menlo,monospace; }
-    .canvas-wrap { aspect-ratio:1; min-height:180px; padding:12px; position:relative; }
-    canvas { width:100%; height:100%; display:block; background:#11181b; border:1px solid #cbd3d6; image-rendering:pixelated; }
+    .canvas-wrap { aspect-ratio:1; min-height:180px; padding:12px; position:relative; overflow:hidden; }
+    canvas { width:100%; height:auto; aspect-ratio:1; max-width:100%; display:block; background:#11181b; border:1px solid #cbd3d6; image-rendering:pixelated; }
     .canvas-caption { min-height:39px; padding:0 12px 11px; color:var(--muted); font-size:12px; line-height:1.45; }
     .arrow-row { display:grid; grid-template-columns:1fr 26px 1fr 26px 1fr 26px 1fr; align-items:center; color:var(--muted); font-size:12px; text-align:center; }
     .arrow-row .arrow { display:grid; place-items:center; color:var(--blue); font-size:24px; }
