@@ -1,5 +1,17 @@
 [
   {
+    "slug": "frequency-domain-map",
+    "title": "从照片到频域：看见滤波器在做什么",
+    "description": "联动观察处理后的照片、中心化幅度谱、频域 mask 与逆变换结果，建立空间坐标和频率坐标的对应关系。",
+    "course": "CS302",
+    "topics": [
+      "信号与图像",
+      "傅里叶变换"
+    ],
+    "path": "visualizations/frequency-domain-map/",
+    "created": "2026-11-10"
+  },
+  {
     "slug": "image-gradient-direction",
     "title": "图像梯度：从 Gx、Gy 到方向与 NMS",
     "description": "拖动梯度向量，联动观察中心差分、幅值、atan2 角度、图像坐标系与 NMS 邻居选择。",

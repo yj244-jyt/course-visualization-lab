@@ -1,0 +1,192 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="交互理解图像、二维傅里叶变换、频率域滤波器与逆变换之间的对应关系。">
+  <title>从照片到频域：看见滤波器在做什么</title>
+  <link rel="icon" href="../../assets/favicon.svg" type="image/svg+xml">
+  <style>
+    :root { color-scheme: light; --bg:#f7f8f8; --surface:#fff; --ink:#182025; --muted:#5b686f; --line:#d7dde0; --blue:#176b87; --blue-soft:#e4f2f6; --coral:#bd5b43; --coral-soft:#faece7; --green:#31745c; font-family: Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; }
+    * { box-sizing:border-box; }
+    body { margin:0; min-width:320px; background:var(--bg); color:var(--ink); }
+    .site-header { min-height:58px; padding:0 24px; border-bottom:1px solid var(--line); display:flex; align-items:center; justify-content:space-between; gap:18px; font-size:14px; }
+    .site-header a { color:var(--blue); font-weight:650; text-decoration:none; }
+    .site-header span { color:var(--muted); }
+    main { width:min(calc(100% - 32px), 1360px); margin:0 auto; padding:24px 0 44px; }
+    #frequency-domain-map { display:grid; gap:18px; }
+    h1,h2,h3,p { margin:0; }
+    h1 { font-size:clamp(25px,3vw,38px); line-height:1.15; letter-spacing:0; }
+    h2 { font-size:19px; line-height:1.3; }
+    h3 { font-size:15px; line-height:1.3; }
+    .eyebrow { color:var(--coral); font-size:12px; font-weight:750; letter-spacing:.08em; }
+    .lede { max-width:850px; color:var(--muted); line-height:1.65; }
+    .title-row { display:grid; gap:7px; }
+    .concept-strip { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); border:1px solid var(--line); background:var(--surface); }
+    .concept { padding:13px 15px; border-right:1px solid var(--line); display:grid; gap:4px; }
+    .concept:last-child { border-right:0; }
+    .concept strong { font-size:14px; }
+    .concept span { color:var(--muted); font-size:12px; line-height:1.4; }
+    .workbench { display:grid; grid-template-columns:minmax(0,1fr) 296px; gap:18px; align-items:start; }
+    .stage { min-width:0; display:grid; gap:12px; }
+    .stage-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; }
+    .panel { min-width:0; border:1px solid var(--line); background:var(--surface); }
+    .panel-head { min-height:50px; padding:10px 12px 8px; display:flex; align-items:start; justify-content:space-between; gap:10px; border-bottom:1px solid var(--line); }
+    .panel-title { display:grid; gap:2px; }
+    .panel-title span { color:var(--muted); font-size:12px; }
+    .panel-tag { flex:0 0 auto; padding:3px 6px; color:var(--muted); background:var(--bg); border:1px solid var(--line); font:11px ui-monospace,SFMono-Regular,Menlo,monospace; }
+    .canvas-wrap { aspect-ratio:1; min-height:180px; padding:12px; position:relative; }
+    canvas { width:100%; height:100%; display:block; background:#11181b; border:1px solid #cbd3d6; image-rendering:pixelated; }
+    .canvas-caption { min-height:39px; padding:0 12px 11px; color:var(--muted); font-size:12px; line-height:1.45; }
+    .arrow-row { display:grid; grid-template-columns:1fr 44px 1fr 44px 1fr; align-items:center; color:var(--muted); font-size:12px; text-align:center; }
+    .arrow-row .arrow { display:grid; place-items:center; color:var(--blue); font-size:24px; }
+    .arrow-row .label { padding:5px; border:1px solid var(--line); background:var(--surface); }
+    .note { padding:12px 14px; border-left:3px solid var(--coral); background:var(--coral-soft); line-height:1.55; font-size:13px; }
+    .note strong { color:#824333; }
+    .controls { border:1px solid var(--line); background:var(--surface); padding:15px; display:grid; gap:16px; }
+    .controls h2 { font-size:17px; }
+    .control-group { display:grid; gap:7px; }
+    .control-label { display:flex; align-items:baseline; justify-content:space-between; gap:10px; font-size:13px; font-weight:650; }
+    .value { color:var(--blue); font-variant-numeric:tabular-nums; }
+    select,input[type=range] { width:100%; }
+    select { min-height:38px; padding:7px 9px; border:1px solid var(--line); background:var(--surface); color:var(--ink); font:inherit; }
+    input[type=range] { accent-color:var(--blue); }
+    .btn-row { display:flex; flex-wrap:wrap; gap:7px; }
+    button { min-height:36px; padding:7px 11px; border:1px solid var(--line); border-radius:6px; background:var(--surface); color:var(--ink); font:inherit; font-size:13px; font-weight:650; cursor:pointer; }
+    button:hover { border-color:var(--blue); }
+    button:focus-visible,select:focus-visible,input:focus-visible { outline:3px solid var(--blue); outline-offset:2px; }
+    button.is-active { border-color:var(--blue); background:var(--blue); color:#fff; }
+    .step-list { display:grid; gap:6px; }
+    .step-button { display:grid; grid-template-columns:24px 1fr; align-items:center; text-align:left; gap:7px; }
+    .step-number { width:22px; height:22px; display:grid; place-items:center; border:1px solid currentColor; border-radius:50%; font-size:11px; }
+    .step-button.is-active { background:var(--blue-soft); color:var(--blue); border-color:var(--blue); }
+    .explain { min-height:70px; padding:11px 12px; background:var(--bg); border:1px solid var(--line); color:var(--muted); font-size:13px; line-height:1.55; }
+    .legend { display:flex; flex-wrap:wrap; gap:10px 15px; color:var(--muted); font-size:12px; }
+    .legend-item { display:inline-flex; align-items:center; gap:6px; }
+    .swatch { width:12px; height:12px; display:inline-block; border:1px solid var(--line); }
+    .swatch.low { background:var(--blue); } .swatch.high { background:var(--coral); } .swatch.center { background:#f5f5f5; }
+    .source { color:var(--muted); font-size:12px; }
+    .source a { color:var(--blue); }
+    .sr-only { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0; }
+    @media (max-width:940px) { .workbench { grid-template-columns:1fr; } .controls { order:-1; } .controls-inner { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px; } .controls h2,.step-list,.explain,.source { grid-column:1/-1; } }
+    @media (max-width:640px) { .site-header { padding:0 15px; } .site-header span { display:none; } main { width:min(calc(100% - 24px),1360px); padding-top:16px; } .concept-strip { grid-template-columns:repeat(2,minmax(0,1fr)); } .concept:nth-child(2) { border-right:0; } .concept:nth-child(-n+2) { border-bottom:1px solid var(--line); } .stage-grid { grid-template-columns:1fr; } .arrow-row { grid-template-columns:1fr; gap:4px; } .arrow-row .arrow { transform:rotate(90deg); min-height:22px; } .controls-inner { grid-template-columns:1fr; } .controls h2,.step-list,.explain,.source { grid-column:auto; } .canvas-wrap { min-height:240px; } }
+    @media (prefers-color-scheme: dark) { :root { color-scheme:dark; --bg:#111618; --surface:#182023; --ink:#edf3f5; --muted:#aebcc1; --line:#354348; --blue:#71c4dc; --blue-soft:#173640; --coral:#f08b70; --coral-soft:#352521; --green:#72c399; } .panel-tag,.explain { background:#202b2f; } .note strong { color:#ffb39c; } select,button { background:var(--surface); color:var(--ink); } }
+  </style>
+</head>
+<body>
+  <header class="site-header"><a href="../../">← 返回可视化目录</a><span>CS302 · 信号与图像</span></header>
+  <main><div id="frequency-domain-map">
+    <div class="title-row">
+      <div class="eyebrow">ONE IMAGE · TWO COORDINATE SYSTEMS</div>
+      <h1>从照片到频域：看见滤波器在做什么</h1>
+      <p class="lede">把同一张照片放进四个“窗口”：处理后的空间图像、它的频谱、频域滤波器，以及逆变换得到的结果。拖动控制项，观察哪些变化被保留，哪些变化被抹掉。</p>
+    </div>
+
+    <section class="concept-strip" aria-label="四个关键概念">
+      <div class="concept"><strong>空间域 I(x,y)</strong><span>每个位置的亮度；边缘是亮度快速变化的地方。</span></div>
+      <div class="concept"><strong>频率域 F(u,v)</strong><span>每个方向、每个变化速率的强度；不是像素坐标。</span></div>
+      <div class="concept"><strong>滤波器 H(u,v)</strong><span>对频率分量逐点乘法：保留、削弱或翻转相位。</span></div>
+      <div class="concept"><strong>逆变换 g(x,y)</strong><span>把改过的频率重新合成为一张空间图像。</span></div>
+    </section>
+
+    <div class="workbench">
+      <section class="stage" aria-label="图像与频域对应关系">
+        <div class="stage-grid">
+          <article class="panel" data-panel="input">
+            <div class="panel-head"><div class="panel-title"><h2>输入图像 I<sub>p</sub>(x,y)</h2><span>先在空间域处理原照片</span></div><span class="panel-tag">64 × 64</span></div>
+            <div class="canvas-wrap"><canvas id="input-canvas" width="256" height="256" aria-label="处理后的输入图像"></canvas></div>
+            <p class="canvas-caption" id="input-caption">输入是同一张街景；下面的“空间域处理”会先改变它，再计算频谱。</p>
+          </article>
+          <article class="panel" data-panel="spectrum">
+            <div class="panel-head"><div class="panel-title"><h2>幅度谱 |F<sub>p</sub>(u,v)|</h2><span>fftshift 后，低频在中心</span></div><span class="panel-tag">对数亮度</span></div>
+            <div class="canvas-wrap"><canvas id="spectrum-canvas" width="256" height="256" aria-label="输入图像的中心化幅度谱"></canvas></div>
+            <p class="canvas-caption">中心亮点代表整体明暗的慢变化；离中心越远，代表越快的空间变化。</p>
+          </article>
+          <article class="panel" data-panel="filter">
+            <div class="panel-head"><div class="panel-title"><h2>频域滤波器 H(u,v)</h2><span>每个频率位置都乘一个权重</span></div><span class="panel-tag" id="filter-tag">低通</span></div>
+            <div class="canvas-wrap"><canvas id="filter-canvas" width="256" height="256" aria-label="频域滤波器 mask"></canvas></div>
+            <p class="canvas-caption" id="filter-caption">蓝色区域接近 1，会被保留；外圈接近 0，会被削弱。</p>
+          </article>
+          <article class="panel" data-panel="output">
+            <div class="panel-head"><div class="panel-title"><h2>逆变换结果 g(x,y)</h2><span>F<sub>p</sub> · H → F<sub>g</sub> → IFFT</span></div><span class="panel-tag" id="output-tag">输出</span></div>
+            <div class="canvas-wrap"><canvas id="output-canvas" width="256" height="256" aria-label="频域滤波后的逆变换图像"></canvas></div>
+            <p class="canvas-caption" id="output-caption">结果仍是同一坐标系中的照片；只是它的细节组成被重新配平了。</p>
+          </article>
+        </div>
+        <div class="arrow-row" aria-hidden="true"><span class="label">处理后的原图</span><span class="arrow">→</span><span class="label">二维 Fourier transform</span><span class="arrow">→</span><span class="label">乘上 H(u,v)，再 IFFT</span></div>
+        <div class="note"><strong>别把坐标混在一起：</strong>原图里的 (x,y) 是“哪里”；频谱里的 (u,v) 是“变化有多快、朝哪个方向”。频谱中心是低频，不是原照片的中心像素。</div>
+        <div class="legend"><span class="legend-item"><i class="swatch low"></i>低频 / 慢变化</span><span class="legend-item"><i class="swatch high"></i>高频 / 边缘与细纹理</span><span class="legend-item"><i class="swatch center"></i>频谱已移动到中心</span></div>
+      </section>
+
+      <aside class="controls" aria-label="交互控制">
+        <h2>操作实验</h2>
+        <div class="controls-inner">
+          <div class="control-group"><label class="control-label" for="spatial-select">空间域处理<span class="value" id="spatial-value">原图</span></label><select id="spatial-select"><option value="raw">原图</option><option value="blur">轻微模糊</option><option value="sharpen">锐化</option><option value="edge">边缘响应</option></select></div>
+          <div class="control-group"><label class="control-label" for="filter-select">频域滤波器<span class="value" id="filter-value">低通</span></label><select id="filter-select"><option value="lowpass">低通：保留慢变化</option><option value="highpass">高通：保留边缘</option><option value="bandpass">带通：保留一圈频率</option></select></div>
+          <div class="control-group"><label class="control-label" for="cutoff-range">截止半径 <span class="value"><span id="cutoff-value">14</span> / 32</span></label><input id="cutoff-range" type="range" min="3" max="30" value="14"></div>
+          <div class="control-group"><label class="control-label" for="contrast-range">显示对比度 <span class="value"><span id="contrast-value">1.0</span>×</span></label><input id="contrast-range" type="range" min="0.6" max="1.8" value="1" step="0.1"></div>
+          <div class="btn-row"><button type="button" id="reset-btn">重置参数</button><button type="button" id="animate-btn">播放一次流程</button></div>
+          <div class="step-list" aria-label="教学步骤"><button type="button" class="step-button is-active" data-step="1"><span class="step-number">1</span><span>先看空间域：边缘来自快变化</span></button><button type="button" class="step-button" data-step="2"><span class="step-number">2</span><span>再看频域：中心是低频</span></button><button type="button" class="step-button" data-step="3"><span class="step-number">3</span><span>套上滤波器：选择要留下的变化</span></button><button type="button" class="step-button" data-step="4"><span class="step-number">4</span><span>逆变换：频率重新合成图像</span></button></div>
+          <p class="explain" id="explain" aria-live="polite">先把照片当成亮度函数 I(x,y)：画面里的每个位置都有一个数，边缘只是相邻位置变化很快。</p>
+          <p class="source">素材照片：<a href="https://unsplash.com/photos/walking-street-photo-1495361351755-ca114f6e80fa" target="_blank" rel="noreferrer">Unsplash 城市街景</a>，已在本地压缩为教学素材。</p>
+        </div>
+      </aside>
+    </div>
+  </div></main>
+  <script>
+  (() => {
+    const N = 64;
+    const inputCanvas = document.querySelector('#input-canvas');
+    const spectrumCanvas = document.querySelector('#spectrum-canvas');
+    const filterCanvas = document.querySelector('#filter-canvas');
+    const outputCanvas = document.querySelector('#output-canvas');
+    const spatialSelect = document.querySelector('#spatial-select');
+    const filterSelect = document.querySelector('#filter-select');
+    const cutoffRange = document.querySelector('#cutoff-range');
+    const contrastRange = document.querySelector('#contrast-range');
+    const explain = document.querySelector('#explain');
+    const state = { raw: new Float32Array(N * N), processed: new Float32Array(N * N), spectrum: null, result: null, filter: null, step: 1, animating: false };
+    const cos = Array.from({ length: N }, (_, k) => Array.from({ length: N }, (_, n) => Math.cos((2 * Math.PI * k * n) / N)));
+    const sin = Array.from({ length: N }, (_, k) => Array.from({ length: N }, (_, n) => Math.sin((2 * Math.PI * k * n) / N)));
+    const clamp = value => Math.max(0, Math.min(1, value));
+    const index = (x, y) => y * N + x;
+    const canvasContext = canvas => canvas.getContext('2d', { alpha: false });
+    function dft1d(input, inverse = false) {
+      const re = new Float64Array(N), im = new Float64Array(N);
+      for (let k = 0; k < N; k += 1) for (let n = 0; n < N; n += 1) { const sign = inverse ? 1 : -1; re[k] += input[n] * cos[k][n]; im[k] += sign * input[n] * sin[k][n]; }
+      if (inverse) for (let k = 0; k < N; k += 1) { re[k] /= N; im[k] /= N; }
+      return { re, im };
+    }
+    function transform2d(values, inverse = false) { return transformComplex2d(values, new Float64Array(N * N), inverse); }
+    function transformComplex2d(valuesRe, valuesIm, inverse = false) {
+      const horizontalRe = new Float64Array(N * N), horizontalIm = new Float64Array(N * N);
+      for (let y = 0; y < N; y += 1) { const row = valuesRe.slice(y * N, (y + 1) * N); const imag = valuesIm.slice(y * N, (y + 1) * N); const transformed = dft1dComplex(row, imag, inverse); for (let x = 0; x < N; x += 1) { horizontalRe[index(x, y)] = transformed.re[x]; horizontalIm[index(x, y)] = transformed.im[x]; } }
+      const outputRe = new Float64Array(N * N), outputIm = new Float64Array(N * N);
+      for (let x = 0; x < N; x += 1) { const row = new Float64Array(N), imag = new Float64Array(N); for (let y = 0; y < N; y += 1) { row[y] = horizontalRe[index(x, y)]; imag[y] = horizontalIm[index(x, y)]; } const transformed = dft1dComplex(row, imag, inverse); for (let y = 0; y < N; y += 1) { outputRe[index(x, y)] = transformed.re[y]; outputIm[index(x, y)] = transformed.im[y]; } }
+      return { re: outputRe, im: outputIm };
+    }
+    function dft1dComplex(real, imag, inverse) { const re = new Float64Array(N), im = new Float64Array(N); for (let k = 0; k < N; k += 1) for (let n = 0; n < N; n += 1) { const sign = inverse ? 1 : -1; re[k] += real[n] * cos[k][n] - sign * imag[n] * sin[k][n]; im[k] += sign * real[n] * sin[k][n] + imag[n] * cos[k][n]; } if (inverse) for (let k = 0; k < N; k += 1) { re[k] /= N; im[k] /= N; } return { re, im }; }
+    function shiftedCoord(coord) { return (coord + N / 2) % N; }
+    function frequencyRadius(x, y) { const dx = x - N / 2, dy = y - N / 2; return Math.sqrt(dx * dx + dy * dy); }
+    function makeProcessed(mode) { const source = state.raw, out = new Float32Array(source); if (mode === 'raw') return out; const at = (x, y) => source[Math.max(0, Math.min(N - 1, y)) * N + Math.max(0, Math.min(N - 1, x))]; for (let y = 0; y < N; y += 1) for (let x = 0; x < N; x += 1) { if (mode === 'blur') { let sum = 0; for (let oy = -1; oy <= 1; oy += 1) for (let ox = -1; ox <= 1; ox += 1) sum += at(x + ox, y + oy); out[index(x, y)] = sum / 9; } else if (mode === 'sharpen') { const blur = (at(x, y) + at(x - 1, y) + at(x + 1, y) + at(x, y - 1) + at(x, y + 1)) / 5; out[index(x, y)] = clamp(at(x, y) * 1.7 - blur * .7); } else if (mode === 'edge') { const gx = at(x + 1, y - 1) + 2 * at(x + 1, y) + at(x + 1, y + 1) - at(x - 1, y - 1) - 2 * at(x - 1, y) - at(x - 1, y + 1); const gy = at(x - 1, y + 1) + 2 * at(x, y + 1) + at(x + 1, y + 1) - at(x - 1, y - 1) - 2 * at(x, y - 1) - at(x + 1, y - 1); out[index(x, y)] = clamp(Math.sqrt(gx * gx + gy * gy) * 1.4); } } return out; }
+    function makeFilter(kind, cutoff) { const filter = new Float32Array(N * N); for (let y = 0; y < N; y += 1) for (let x = 0; x < N; x += 1) { const r = frequencyRadius(x, y); const smooth = Math.exp(-(r * r) / (2 * cutoff * cutoff)); filter[index(x, y)] = kind === 'lowpass' ? smooth : kind === 'highpass' ? 1 - smooth : Math.exp(-((r - cutoff * 1.35) ** 2) / (2 * (cutoff * .36) ** 2)); } return filter; }
+    function fftshift(values) { const out = new Float64Array(N * N); for (let y = 0; y < N; y += 1) for (let x = 0; x < N; x += 1) out[index(x, y)] = values[index(shiftedCoord(x), shiftedCoord(y))]; return out; }
+    function applyFilter(spectrum, filter) { const re = new Float64Array(N * N), im = new Float64Array(N * N); for (let y = 0; y < N; y += 1) for (let x = 0; x < N; x += 1) { const shifted = index(shiftedCoord(x), shiftedCoord(y)); const weight = filter[index(x, y)]; re[shifted] = spectrum.re[shifted] * weight; im[shifted] = spectrum.im[shifted] * weight; } return transformFromSpectrum({ re, im }, true); }
+    function transformFromSpectrum(spectrum, inverse) { const result = transformComplex2d(spectrum.re, spectrum.im, inverse); return Float32Array.from(result.re); }
+    function normalize(values, contrast = 1) { let min = Infinity, max = -Infinity; for (const value of values) { min = Math.min(min, value); max = Math.max(max, value); } const span = max - min || 1; return values.map(value => clamp(((value - min) / span - .5) * contrast + .5)); }
+    function drawValues(canvas, values, mode = 'gray') { const ctx = canvasContext(canvas), image = ctx.createImageData(N, N); const normalized = mode === 'spectrum' ? normalize(values).map(value => Math.pow(value, .72)) : normalize(values, Number(contrastRange.value)); for (let i = 0; i < values.length; i += 1) { const v = Math.round(normalized[i] * 255), p = i * 4; if (mode === 'filter') { const isLow = values[i] > .55; image.data[p] = isLow ? 35 : 189; image.data[p + 1] = isLow ? 145 : 91; image.data[p + 2] = isLow ? 173 : 67; } else { image.data[p] = v; image.data[p + 1] = v; image.data[p + 2] = v; } image.data[p + 3] = 255; } const temp = document.createElement('canvas'); temp.width = N; temp.height = N; temp.getContext('2d').putImageData(image, 0, 0); ctx.imageSmoothingEnabled = false; ctx.clearRect(0, 0, canvas.width, canvas.height); ctx.drawImage(temp, 0, 0, canvas.width, canvas.height); }
+    function drawPhoto(canvas, values) { drawValues(canvas, values, 'gray'); }
+    function update() { state.processed = makeProcessed(spatialSelect.value); state.spectrum = transform2d(state.processed); const magnitude = new Float64Array(N * N); for (let y = 0; y < N; y += 1) for (let x = 0; x < N; x += 1) { const shifted = index(shiftedCoord(x), shiftedCoord(y)); magnitude[index(x, y)] = Math.log1p(Math.hypot(state.spectrum.re[shifted], state.spectrum.im[shifted])); } state.filter = makeFilter(filterSelect.value, Number(cutoffRange.value)); state.result = applyFilter(state.spectrum, state.filter); drawPhoto(inputCanvas, state.processed); drawValues(spectrumCanvas, magnitude, 'spectrum'); drawValues(filterCanvas, state.filter, 'filter'); drawPhoto(outputCanvas, state.result); updateLabels(); }
+    function updateLabels() { const spatialLabels = { raw:'原图', blur:'轻微模糊', sharpen:'锐化', edge:'边缘响应' }; const filterLabels = { lowpass:'低通', highpass:'高通', bandpass:'带通' }; document.querySelector('#spatial-value').textContent = spatialLabels[spatialSelect.value]; document.querySelector('#filter-value').textContent = filterLabels[filterSelect.value]; document.querySelector('#cutoff-value').textContent = cutoffRange.value; document.querySelector('#contrast-value').textContent = Number(contrastRange.value).toFixed(1); document.querySelector('#filter-tag').textContent = filterLabels[filterSelect.value]; const filterCopy = { lowpass:'蓝色区域接近 1，会被保留；外圈接近 0，会被削弱。', highpass:'中心低频被压低，离中心越远的边缘与细纹理被保留。', bandpass:'只保留一圈变化速率；太慢和太快的成分都会被削弱。' }; document.querySelector('#filter-caption').textContent = filterCopy[filterSelect.value]; document.querySelector('#output-tag').textContent = filterSelect.value === 'lowpass' ? '更平滑' : filterSelect.value === 'highpass' ? '更锐利' : '一圈纹理'; }
+    const stepText = { 1:'先把照片当成亮度函数 I(x,y)：画面里的每个位置都有一个数，边缘只是相邻位置变化很快。', 2:'二维 Fourier transform 把“位置”换成“变化速率”。中心的亮度不是中央像素，而是整张图的低频能量。', 3:'H(u,v) 是一个与频谱同坐标的乘法模板：低通像保留中心，高通像挖掉中心；它不会直接移动原图像素。', 4:'逆变换把修改后的复数频谱重新叠加成亮度。滤掉高频会模糊，滤掉低频会突出边缘，但坐标仍回到 (x,y)。' };
+    function setStep(step) { state.step = step; document.querySelectorAll('.step-button').forEach(button => button.classList.toggle('is-active', Number(button.dataset.step) === step)); explain.textContent = stepText[step]; document.querySelectorAll('[data-panel]').forEach(panel => panel.style.borderColor = 'var(--line)'); const panel = document.querySelector(`[data-panel="${['input','spectrum','filter','output'][step - 1]}"]`); if (panel) panel.style.borderColor = 'var(--blue)'; }
+    function loadSource() { const image = new Image(); image.onload = () => { const temp = document.createElement('canvas'); temp.width = N; temp.height = N; const ctx = temp.getContext('2d'); ctx.drawImage(image, 0, 0, N, N); const pixels = ctx.getImageData(0, 0, N, N).data; for (let i = 0; i < N * N; i += 1) state.raw[i] = (pixels[i * 4] * .299 + pixels[i * 4 + 1] * .587 + pixels[i * 4 + 2] * .114) / 255; update(); }; image.onerror = () => { for (let y = 0; y < N; y += 1) for (let x = 0; x < N; x += 1) state.raw[index(x, y)] = clamp(.25 + .3 * Math.sin(x / 5) + .25 * Math.cos(y / 9) + (x > 32 && y > 28 ? .2 : 0)); update(); }; image.src = 'assets/urban-street.jpg'; }
+    [spatialSelect, filterSelect, cutoffRange, contrastRange].forEach(control => control.addEventListener('input', update));
+    document.querySelectorAll('.step-button').forEach(button => button.addEventListener('click', () => setStep(Number(button.dataset.step))));
+    document.querySelector('#reset-btn').addEventListener('click', () => { spatialSelect.value = 'raw'; filterSelect.value = 'lowpass'; cutoffRange.value = '14'; contrastRange.value = '1'; setStep(1); update(); });
+    document.querySelector('#animate-btn').addEventListener('click', () => { if (state.animating) return; state.animating = true; let current = 1; const button = document.querySelector('#animate-btn'); button.textContent = '流程播放中…'; const timer = setInterval(() => { setStep(current); current += 1; if (current > 4) { clearInterval(timer); state.animating = false; button.textContent = '播放一次流程'; } }, 850); });
+    loadSource(); setStep(1);
+  })();
+  </script>
+</body>
+</html>
