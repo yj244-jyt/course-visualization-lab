@@ -10,7 +10,40 @@
 <p id="maskRule" class="formula"></p><p id="error" role="alert"></p>
 <div class="grid"><figure><h3>A · 苹果完整原图</h3><canvas id="a" width="512" height="512" tabindex="0" aria-label="苹果图，点击取样，方向键移动取样点"></canvas><figcaption>橙色十字与其他图指向同一个空间坐标。</figcaption></figure><figure><h3>B · 橙子完整原图</h3><canvas id="b" width="512" height="512" tabindex="0" aria-label="橙子图，点击取样"></canvas><figcaption>两张图直接重叠对应坐标，不裁成两张半图后缩放。</figcaption></figure><figure><h3>M₀ · 原始 Mask</h3><canvas id="mask" width="512" height="512" tabindex="0" aria-label="原始 mask，点击取样"></canvas><figcaption>白色 1 选择 A；黑色 0 选择 B。分界来自你设计的 mask。</figcaption></figure><figure><h3>多层融合结果</h3><canvas id="result" width="512" height="512" tabindex="0" aria-label="融合结果，点击取样"></canvas><figcaption>点击任一图取样；先移动边界，再调整层数比较接缝。</figcaption></figure></div>
 <div class="panel"><h2>同一个位置，究竟用了谁？</h2><div id="probe" aria-live="polite"></div><p class="muted">1 层时 F(p) = M₀(p)A(p) + (1−M₀(p))B(p)。多层时，各频带使用不同的 Mₖ；放大重建还会汇集邻域，所以不能给最终像素指定一个通用的「原图 A 占 70%」比例。</p></div>
-<div class="panel"><h2>01 · 设计分界线，比较硬拼接</h2><div class="grid three"><figure><h3>硬拼接 · M₀A + (1−M₀)B</h3><canvas id="hard" width="512" height="512"></canvas><figcaption>只有 0 / 1 的 mask 会直接切换来源。</figcaption></figure><figure><h3>当前层数 · 金字塔融合</h3><canvas id="smooth" width="512" height="512"></canvas><figcaption>颜色和亮度在多个尺度上过渡，纹理细节仍局部选取。</figcaption></figure><div><p>竖线模式中，列 j &lt; t 的像素来自 A 一侧；列 j ≥ t 的像素来自 B 一侧。默认 t = 256，因此分界在中间。</p><p>水平模式用行 i 判断；斜线和圆形模式使用二维几何条件。算法不会识别「苹果在哪里」再自动选边界。</p><pre id="maskCode" class="code"></pre><p class="muted">对于圆形 mask，圆内选 A、圆外选 B；反转后相反。若要沿物体轮廓融合，可以用分割得到的轮廓 mask，融合本身不负责分割或配准。</p></div></div></div>
+<div class="panel"><h2>01 · 设计分界线，比较硬拼接</h2><div class="grid three"><figure><h3>硬拼接 · M₀A + (1−M₀)B</h3><canvas id="hard" width="512" height="512"></canvas><figcaption>只有 0 / 1 的 mask 会直接切换来源。</figcaption></figure><figure><h3>当前层数 · 金字塔融合</h3><canvas id="smooth" width="512" height="512"></canvas><figcaption>颜色和亮度在多个尺度上过渡，纹理细节仍局部选取。</figcaption></figure><div><p>每个位置使用同一坐标的 A[i,j] 和 B[i,j]。原始 mask[i,j] 为 1 就选 A，为 0 就选 B。</p><p>竖线模式按列 j 判断：j &lt; t 为 A 选区（左），j ≥ t 为 B 选区（右）。水平模式按行 i 判断：i &lt; t 为 A 选区（上），i ≥ t 为 B 选区（下）。</p><pre id="maskCode" class="code"></pre><p class="muted">这些选区描述的是原始二值 mask／硬拼接；多层融合会在选区边界附近产生过渡。算法不识别水果，也不自动选择分界线。</p></div></div></div>
+<section class="panel" id="original-mask-code"><h2>你的作业原例：中间竖线是这段代码指定的</h2><pre class="code">mask = np.zeros(A.shape[:2], dtype=float)
+mask[:, :A.shape[1]//2] = 1.0
+hard_splice = mask[...,None]*A + (1-mask[...,None])*B</pre><div class="grid two"><div><p><code>A.shape</code> 是 (H, W, 3)；<code>A.shape[:2]</code> 是 (H, W)，因此第一行创建与两张图空间位置一一对应的全零 mask。</p><p><code>A.shape[1]</code> 是宽度 W；<code>W // 2</code> 是向下取整的一半。对 512 × 512 的两张图，它等于 256；若宽度为 511，则等于 255。</p><p>第二行的第一个 <code>:</code> 表示全部行，第二个 <code>:A.shape[1]//2</code> 表示前半部分列。这条切片规则产生中间竖线，并不检查苹果或橙子的内容。</p></div><div><p class="formula">512 × 512 例子：<br>列 0–255：mask = 1 → 苹果 A<br>列 256–511：mask = 0 → 橙子 B<br>对所有行 i = 0–511 都一样</p><p>所以左上、左下都选苹果；右上、右下都选橙子。若要改成上半苹果、下半橙子，第二行改为 <code>mask[:A.shape[0]//2, :] = 1.0</code>。</p><p><code>mask[...,None]</code> 将 (H,W) 变为 (H,W,1)，让同一个选择作用于 RGB 三个通道。第三行生成硬拼接；多层融合继续使用这个 mask，并在较粗层对它平滑。</p><button id="exampleMiddle">应用原例：左半苹果 / 右半橙子</button></div></div></section>
+<section class="panel" id="mask-coordinate-guide"><h2>01a · 上下、左右到底由哪一个下标决定？</h2><div class="grid two"><div><pre class="code">左上角 (i=0, j=0)
+        列 j 增加 → 向右
+行 i  ↓
+增加  ↓ 向下
+
+mask[行, 列] = mask[i, j]</pre><p><code>mask[:, :49] = 1</code> 中，逗号前的 <code>:</code> 表示「所有行」，逗号后的 <code>:49</code> 表示「第 0–48 列」。所以无论上面还是下面，左侧这 49 列都选 A，剩下的列选 B。</p><p><code>mask[:49, :] = 1</code> 则是「第 0–48 行、所有列」：上方 49 行选 A，下方选 B。切片不包含终点 49。</p><p class="formula">mask[:, :t] → 左 A / 右 B<br>mask[:t, :] → 上 A / 下 B</p></div><div><h3>6 × 6 小例子，t = 3</h3><pre class="code">mask[:, :3] = 1   mask[:3, :] = 1
+左 A，右 B         上 A，下 B
+
+1 1 1 0 0 0       1 1 1 1 1 1
+1 1 1 0 0 0       1 1 1 1 1 1
+1 1 1 0 0 0       1 1 1 1 1 1
+1 1 1 0 0 0       0 0 0 0 0 0
+1 1 1 0 0 0       0 0 0 0 0 0
+1 1 1 0 0 0       0 0 0 0 0 0</pre><p>例如竖线 t = 49 时，(行 400, 列 20) 在左侧，选 A；(行 20, 列 400) 在右侧，选 B。水平分界则刚好相反，因为它检查行号。</p><div class="controls"><button id="exampleLeft">演示：左侧 49 列选 A</button><button id="exampleTop">演示：上方 49 行选 A</button></div></div></div></section>
+<section class="panel" id="circle-mask-example"><h2>01b · 额外例子：用中心圆选择苹果</h2><p>圆形需要同时判断行和列：计算每个像素到圆心的距离。距离小于半径 r 的位置设为 1，圆外设为 0。本例圆心取 (H // 2, W // 2)，在 512 × 512 图上是 (256,256)。</p><div class="grid two"><div><pre class="code">H, W = A.shape[:2]
+i, j = np.ogrid[:H, :W]
+
+cy, cx = H // 2, W // 2  # 圆心：行、列
+r = 150                 # 半径，单位：像素
+
+mask = (
+    (i - cy)**2 + (j - cx)**2 &lt; r**2
+).astype(float)
+
+# 同一位置：圆内取 A，圆外取 B
+hard = (mask[..., None] * A
+        + (1 - mask[..., None]) * B)
+
+# 在圆周附近进行多尺度过渡
+blend = pyramid_blend(A, B, mask, 4)</pre><p><code>i</code> 的形状是 (H,1)，<code>j</code> 的形状是 (1,W)；NumPy 广播后得到 H × W 的距离平方矩阵。比较产生 True / False，再转成 1.0 / 0.0。</p></div><div><svg viewBox="0 0 400 290" role="img" aria-label="中心圆内为 A，圆外为 B；圆心向上和向下对称" style="display:block;width:100%;max-height:290px"><rect x="30" y="15" width="340" height="255" fill="var(--soft)" stroke="var(--line)"/><circle cx="200" cy="142" r="95" fill="var(--paper)" stroke="var(--accent)" stroke-width="3"/><g fill="var(--ink)" font-size="14" text-anchor="middle"><text x="200" y="115">圆内：M = 1 → A</text><text x="200" y="168">圆心 (cy, cx)</text><text x="200" y="256">圆外：M = 0 → B</text><text x="252" y="135">半径 r</text><text x="200" y="38">上</text><text x="200" y="232">下</text></g><path d="M200 142H295" stroke="var(--accent)" stroke-width="2"/><circle cx="200" cy="142" r="4" fill="var(--accent)"/></svg><p class="formula">(i − cy)² + (j − cx)² &lt; r²<br>本例：距离平方 &lt; 22500 → 选 A</p><p>圆心 (256,256) 的距离为 0，选 A；(156,256) 在圆心上方 100 像素，选 A；(356,256) 在下方 100 像素，同样选 A。平方后上下方向的正负号消失，选择只取决于距离。</p><p>(56,256) 距圆心 200 像素，选 B；恰好距离 150 的点也选 B，因为代码使用严格小于 <code>&lt;</code>。若改为 <code>&lt;=</code>，圆周上的点也归 A。</p><button id="exampleCircle">应用中心圆：r = 150，4 层融合</button><p class="muted">反转 <code>mask = 1 - mask</code> 后，圆内选橙子 B，圆外选苹果 A。这个圆形是人为设计的几何区域，不是水果轮廓；沿物体边界选区需要另行生成分割 mask。</p></div></div></section>
 <div class="panel"><h2>02 · 在同一层，把 Mask 对应到两张图</h2><div class="controls"><label>查看层 k <input id="layer" type="range" min="0" max="3" value="0"><output id="layerValue">0</output></label><button id="layerNext">下一层</button></div><p id="layerInfo"></p><div class="grid"><figure><h3 id="laTitle">Lᴬₖ</h3><canvas id="la" width="512" height="512"></canvas></figure><figure><h3 id="mbTitle">Mₖ · Gaussian mask</h3><canvas id="mk" width="512" height="512"></canvas></figure><figure><h3 id="lbTitle">Lᴮₖ</h3><canvas id="lb" width="512" height="512"></canvas></figure><figure><h3>融合后的这一层 Cₖ</h3><canvas id="ck" width="512" height="512"></canvas></figure></div><p class="formula">Cₖ(i,j,c) = Mₖ(i,j) × Lᴬₖ(i,j,c) + [1−Mₖ(i,j)] × Lᴮₖ(i,j,c)</p><p id="layerProbe" class="formula"></p><p>每层 mask 的高宽与图像层一致。Python 中 <code>M[..., None]</code> 把 (Hₖ,Wₖ) 变成 (Hₖ,Wₖ,1)，同一个权重同时作用于 R、G、B。较粗层的灰色区域表示混合权重，并不是物体的灰度。</p><p id="scaleNote" class="muted"></p><p class="muted">所有层在页面上放大到相同显示大小，实际数组尺寸会减小。红色表示正残差，蓝色表示负残差，白色表示 0；每组残差使用共同的对称色标，只显示红通道。最粗一层保存 RGB 高斯图，不是残差。</p><details><summary>对应 Python：建立金字塔和逐层融合</summary><pre class="code">GA = gaussian_pyramid(A, num_levels)
 GB = gaussian_pyramid(B, num_levels)
 LA = laplacian_pyramid(GA)
