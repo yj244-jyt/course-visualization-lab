@@ -11,7 +11,11 @@
     const preview = document.createElement('div');
     preview.className = 'visual-preview';
     preview.setAttribute('aria-hidden', 'true');
-    if (item.slug === 'edge-tracking-stack-queue') {
+    if (item.slug === 'gaussian-pyramid' || item.slug === 'laplacian-pyramid') {
+      preview.innerHTML = '<span style="display:flex;align-items:center;gap:12px"><img src="visualizations/pyramid-blending/assets/apple.jpg" alt="" style="width:110px;height:110px"><span>→</span><img src="visualizations/pyramid-blending/assets/apple.jpg" alt="" style="width:55px;height:55px"><span>' + (item.slug === 'gaussian-pyramid' ? '→ ↓2' : '↑2 → −') + '</span></span>';
+    } else if (item.slug === 'pyramid-blending') {
+      preview.innerHTML = '<span style="display:flex;width:80%;height:150px;overflow:hidden"><img src="visualizations/pyramid-blending/assets/apple.jpg" alt="" style="width:50%;object-fit:cover;object-position:left"><img src="visualizations/pyramid-blending/assets/orange.jpg" alt="" style="width:50%;object-fit:cover;object-position:right"></span>';
+    } else if (item.slug === 'edge-tracking-stack-queue') {
       preview.innerHTML = '<svg viewBox="0 0 400 160" width="100%" height="100%"><g fill="none" stroke="#177568" stroke-width="4"><path d="M65 35L105 70L65 105L105 140M105 70L145 35"/><path d="M285 70L245 35M285 70L325 35M285 70L245 110M285 70L325 110"/></g><g fill="#177568"><circle cx="65" cy="35" r="9"/><circle cx="285" cy="70" r="9"/></g><g fill="#eac57e"><circle cx="105" cy="70" r="8"/><circle cx="65" cy="105" r="8"/><circle cx="105" cy="140" r="8"/><circle cx="145" cy="35" r="8"/><circle cx="245" cy="35" r="8"/><circle cx="325" cy="35" r="8"/><circle cx="245" cy="110" r="8"/><circle cx="325" cy="110" r="8"/></g><g fill="currentColor" font-size="14" text-anchor="middle"><text x="100" y="20">Stack · DFS</text><text x="285" y="150">Queue · BFS</text></g></svg>';
     } else if (item.slug === 'frequency-domain-map') {
       preview.classList.add('frequency-map-preview');

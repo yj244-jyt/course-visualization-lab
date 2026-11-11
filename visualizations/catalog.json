@@ -1,5 +1,39 @@
 [
   {
+    "slug": "pyramid-blending",
+    "title": "金字塔融合：Mask、分界线与图像来源",
+    "description": "用苹果与橙子设计可移动的分界线，逐层检查 Gaussian mask、Laplacian 残差、重建过程及两张图的贡献。",
+    "course": "CS302",
+    "topics": [
+      "图像金字塔",
+      "图像融合"
+    ],
+    "path": "visualizations/pyramid-blending/",
+    "created": "2026-11-11"
+  },
+  {
+    "slug": "laplacian-pyramid",
+    "title": "Laplacian pyramid：残差分解与逐层重建",
+    "description": "对照 TODO 3B，观察插零、增益 4 插值、相减保存残差，并实验删除负残差如何破坏重建。",
+    "course": "CS302",
+    "topics": [
+      "图像金字塔"
+    ],
+    "path": "visualizations/laplacian-pyramid/",
+    "created": "2026-11-11"
+  },
+  {
+    "slug": "gaussian-pyramid",
+    "title": "Gaussian pyramid：平滑与下采样的逐步流程",
+    "description": "对照 TODO 3A 代码，逐步观察高斯平滑、偶数行列采样、尺寸递减与棋盘格混叠。",
+    "course": "CS302",
+    "topics": [
+      "图像金字塔"
+    ],
+    "path": "visualizations/gaussian-pyramid/",
+    "created": "2026-11-11"
+  },
+  {
     "slug": "edge-tracking-stack-queue",
     "title": "Canny 边缘追踪：Stack 与 Queue 的传播对照",
     "description": "逐步对照 DFS 与 BFS 的 Python 代码、栈和队列状态、二维 8 邻域传播，编辑像素观察弱边缘如何被接纳。",
