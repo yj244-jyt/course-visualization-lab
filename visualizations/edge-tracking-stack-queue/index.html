@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="zh-CN">
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Canny 边缘追踪：Stack 与 Queue</title>
+<link rel="icon" href="../../assets/favicon.svg" type="image/svg+xml">
+<style>
+:root{color-scheme:light dark;--bg:#f5f6f8;--paper:#fff;--ink:#202c35;--muted:#596771;--line:#cdd5dc;--soft:#edf1f4;--accent:#196c8b;--hit:#e4f1fc;--strong:#177568;--weak:#f7dca6;--accepted:#c4e6e0}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.55 system-ui,sans-serif}main{max-width:1440px;margin:auto;padding:22px}a{color:var(--accent)}h1{font-size:clamp(24px,3vw,36px);margin:12px 0 5px}h2{font-size:21px;margin:0}h3{font-size:15px;margin:12px 0 6px}p{margin:6px 0 12px}.muted,small{color:var(--muted)}button,select{font:inherit;color:var(--ink);background:var(--paper);border:1px solid var(--line);border-radius:5px;padding:7px 11px;cursor:pointer}button:disabled{opacity:.45;cursor:default}button:focus-visible,select:focus-visible,input:focus-visible,summary:focus-visible{outline:3px solid var(--accent);outline-offset:2px}.controls{display:flex;gap:9px;align-items:center;flex-wrap:wrap;padding:12px;background:var(--paper);border:1px solid var(--line);margin:14px 0}.controls label{display:flex;align-items:center;gap:6px}#play{background:var(--accent);color:#fff}#timeline{flex:1;min-width:100px;accent-color:var(--accent)}.intro{display:grid;grid-template-columns:330px 1fr;gap:22px;margin:18px 0}.card,.panel{background:var(--paper);border:1px solid var(--line);padding:16px;min-width:0}.editor{display:grid;grid-template-columns:repeat(10,1fr);gap:3px;margin-top:8px}.pixel{padding:0;aspect-ratio:1;min-width:0;border-radius:2px;font:12px ui-monospace,monospace;background:var(--soft)}.pixel.S{background:var(--strong);color:white}.pixel.W{background:var(--weak);color:#47300d}.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:13px}.legend span:before{content:'';display:inline-block;width:12px;height:12px;border:1px solid var(--line);margin-right:5px;background:var(--soft)}.legend .s:before{background:var(--strong)}.legend .w:before{background:var(--weak)}.legend .a:before{background:var(--accepted)}.pair{display:grid;grid-template-columns:1fr 1fr;gap:16px}.top{display:flex;justify-content:space-between;align-items:center;gap:10px}.badge{font-size:12px;background:var(--soft);padding:3px 7px}.status{min-height:76px;border-left:3px solid var(--accent);padding:8px 12px;background:var(--soft);margin:10px 0;font-size:14px}.map{width:100%;display:block;max-height:340px}.map text{font:13px ui-monospace,monospace;fill:var(--ink)}.map .axis{fill:var(--muted);font-size:11px}.map rect{stroke:var(--line);stroke-width:1}.map rect.current{stroke:#bc451d;stroke-width:3}.map rect.check{stroke:#7354b4;stroke-width:3;stroke-dasharray:4 2}.container-box{height:150px;overflow:auto;border:1px solid var(--line);padding:8px;background:var(--soft)}.stack{display:flex;flex-direction:column-reverse;align-items:flex-start;gap:4px;min-height:100%}.queue{display:flex;align-items:center;gap:5px;min-height:100%;width:max-content}.token{white-space:nowrap;background:var(--paper);border:1px solid var(--line);padding:3px 8px;font:13px ui-monospace,monospace}.token.next{border:2px solid var(--accent)}.memory{font-size:12px;color:var(--muted);margin:4px 0}.code{overflow:auto;background:var(--soft);padding:10px 0;font:12px/1.8 ui-monospace,monospace;white-space:pre;tab-size:4;margin:0;min-height:330px}.line{display:block;padding:0 10px;border-left:3px solid transparent}.line.active{background:var(--hit);border-left-color:var(--accent);font-weight:bold}.ln{display:inline-block;width:24px;color:var(--muted);user-select:none}.trail{height:75px;overflow:auto;font:12px/1.7 ui-monospace,monospace;background:var(--soft);padding:8px;margin-top:8px}.result{padding:12px;border:1px solid var(--line);background:var(--paper);margin:16px 0}.notes{display:grid;grid-template-columns:1fr 1fr;gap:16px}.notes p{font-size:14px}.formula{font:15px/1.8 ui-monospace,monospace;overflow-wrap:anywhere}details{margin-top:14px}summary{cursor:pointer;font-weight:600}table{width:100%;border-collapse:collapse;font-size:14px}td,th{padding:8px;text-align:left;border-bottom:1px solid var(--line)}@media(prefers-color-scheme:dark){:root{--bg:#141c22;--paper:#1d2830;--ink:#e6edf2;--muted:#a7b6c1;--line:#455660;--soft:#263640;--accent:#78c6e5;--hit:#244b61;--accepted:#245c53;--weak:#7d5a22}.pixel.W{color:#fff}#play{color:#13232b}}@media(max-width:850px){.pair,.intro,.notes{grid-template-columns:1fr}.intro{gap:12px}.editor{max-width:340px}.panel{padding:12px}main{padding:12px}.status{min-height:85px}.code{font-size:11px}.top{align-items:flex-start}}@media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}}
+</style>
+<main>
+<a href="../../">← CV 可视化目录</a>
+<h1>边缘追踪：Stack 深入，Queue 扩散</h1>
+<p class="muted">Canny · TODO 2.5 ｜同一张二维输入，同一组 8 邻居，两种搜索顺序。</p>
+<div class="controls">
+<label>场景 <select id="preset"><option value="branch">分叉与孤岛</option><option value="chain">S W W . W</option><option value="diagonal">对角连接</option><option value="multi">多个强边缘</option><option value="none">没有强边缘</option></select></label>
+<button id="reset">重置播放</button><button id="back">← 上一步</button><button id="step">下一步 →</button><button id="play">播放</button><button id="finish">到最终结果</button>
+<label>步长 <select id="granularity"><option value="pixel">处理一个像素</option><option value="event">逐条操作 / 邻居</option></select></label>
+<label>速度 <select id="speed"><option value="1000">慢</option><option value="450" selected>中</option><option value="120">快</option></select></label>
+<input id="timeline" type="range" min="0" max="1" value="0" aria-label="播放进度"><span id="progress"></span>
+</div>
+<div class="intro">
+<section class="card"><h2>输入：双阈值分类图</h2><p class="muted">点击像素循环切换 . → W → S；编辑会重新开始。行向下、列向右，坐标从 0 起。</p><div id="editor" class="editor"></div><div class="legend" style="margin-top:10px"><span class="s">S 强</span><span class="w">W 弱</span><span>. 抑制</span></div></section>
+<section class="card"><h2>先看哪里，再看为什么</h2><p>两侧网格中的 <b>S / W / . 始终表示输入</b>。绿色表示已写入输出；<b>橙色实框</b>是正在处理的像素，<b>紫色虚框</b>是正在检查的邻居。小数字表示取出处理的次序，连线表示首次发现该像素的传播路径。</p><div class="legend"><span class="a">已接纳</span><span class="w">尚未接纳的弱边缘</span></div><p style="margin-top:12px">先点「下一步」观察传播，再把步长改成「逐条操作 / 邻居」：代码高亮会跟随取出、条件判断、标记和加入容器。两侧按各自执行进度前进，不保证正在处理同一个坐标。</p><p class="muted">固定邻居顺序：左上 → 上 → 右上 → 左 → 右 → 左下 → 下 → 右下。Stack 从最后加入的一端取出；Queue 从最先加入的一端取出。只走合法像素，绝不跨过 .。</p><label><input type="checkbox" id="binary"> 网格切换为当前 Boolean 输出（1 / 0）</label></section>
+</div>
+<div class="pair" id="panels"></div>
+<div class="result" id="comparison" role="status"></div>
+<div class="notes">
+<section class="card"><h2>相同的接纳条件</h2><p class="formula">weak[ni, nj] and not edges[ni, nj]</p><p>第一个条件拒绝 suppressed 像素；第二个条件避免重复发现和循环。接纳时先写入 True，再加入容器，因此同一像素最多加入一次。刚接纳的弱边缘还未被处理，但已经属于最终输出。</p><p>输入是两个 H × W Boolean 数组，输出也是 H × W Boolean 数组。<code>strong.copy()</code> 创建独立输出，整个搜索不修改 strong 或 weak。</p><p class="formula">E₀ = S<br>Eₜ₊₁ = Eₜ ∪ {p ∈ W : N₈(p) ∩ Eₜ ≠ ∅}</p><p>直到 E 不再变化。Stack 和 Queue 计算相同的可达集合；BFS 按到任意强边缘的最少步数逐层处理，DFS 的处理次序不代表最短距离。</p></section>
+<section class="card"><h2>读懂容器与传播</h2><table><tr><th></th><th>Stack / DFS</th><th>Queue / BFS</th></tr><tr><td>加入</td><td>append 到栈顶</td><td>append 到队尾</td></tr><tr><td>取出</td><td>pop 栈顶</td><td>popleft 队首</td></tr><tr><td>策略</td><td>后进先出 LIFO</td><td>先进先出 FIFO</td></tr><tr><td>传播</td><td>优先深入最近发现的分支</td><td>先处理较早发现的一层</td></tr><tr><td>最终结果</td><td colspan="2">所有强边缘 + 与它们连通的弱边缘</td></tr></table><p style="margin-top:12px">一个 . 只阻断经过它的路径；二维中若存在其他 8 邻域路径，仍可以绕行。没有任何强边缘时，即使弱边缘互相连成一片，也全部删除。</p><p class="muted">每个像素至多处理一次，每次检查最多 8 个邻居。两种实现时间均为 O(HW)，最坏额外空间均为 O(HW)。</p></section>
+</div>
+<details class="card"><summary>配套 get_neighbors 与双阈值约定</summary><p>示例代码假定已导入 numpy as np。下列 helper 给出本演示使用的确定邻居顺序。</p><pre class="code" style="padding:12px;min-height:0">def get_neighbors(i, j, H, W):
+    return [(i + di, j + dj)
+            for di in (-1, 0, 1)
+            for dj in (-1, 0, 1)
+            if (di != 0 or dj != 0)
+            and 0 &lt;= i + di &lt; H
+            and 0 &lt;= j + dj &lt; W]
+
+strong = nms &gt; high
+weak = (nms &gt; low) &amp; (nms &lt;= high)</pre><p>本页从分类结果开始，不重新计算梯度或 NMS。最终网格中的 0 表示背景，1 表示保留边缘。</p></details>
+</main>
+<script>
+'use strict';
+const H=7,W=10,$=id=>document.getElementById(id);
+let input=[],runs={},position=0,timer=null;
+const codeFor=mode=>[
+mode==='queue'?'from collections import deque':'# DFS: Python list 作为 stack',
+`def link_edges_${mode}(strong, weak):`,
+'    H, W = strong.shape',
+'    edges = strong.copy()',
+mode==='stack'?'    stack = list(zip(*np.nonzero(strong)))':'    queue = deque(zip(*np.nonzero(strong)))',
+`    while ${mode}:`,
+`        i, j = ${mode}.${mode==='stack'?'pop':'popleft'}()`,
+'        for ni, nj in get_neighbors(i, j, H, W):',
+'            if weak[ni, nj] and not edges[ni, nj]:',
+'                edges[ni, nj] = True',
+`                ${mode}.append((ni, nj))`,
+'    return edges'];
+const coord=n=>`(${Math.floor(n/W)},${n%W})`;
+function neighbors(n){let a=[];for(let di=-1;di<=1;di++)for(let dj=-1;dj<=1;dj++){let i=Math.floor(n/W)+di,j=n%W+dj;if((di||dj)&&i>=0&&i<H&&j>=0&&j<W)a.push(i*W+j)}return a}
+function simulate(mode){
+ let edges=input.map(x=>x==='S'),bag=input.flatMap((x,i)=>x==='S'?[i]:[]),order=[],parents=[],current=-1,neighbor=-1,events=[],stops=[0],peak=bag.length;
+ function snap(line,message,done=false){events.push({edges:[...edges],bag:[...bag],order:[...order],parents:parents.map(x=>[...x]),current,neighbor,line,message,done,peak})}
+ snap(4,`复制全部 ${bag.length} 个强边缘到输出，并按行列顺序放入${mode==='stack'?'栈':'队列'}。`);
+ while(bag.length){current=mode==='stack'?bag.pop():bag.shift();neighbor=-1;order.push(current);snap(6,`取出 ${coord(current)}，开始检查它的 8 邻域。`);
+  for(const n of neighbors(current)){neighbor=n;const accept=input[n]==='W'&&!edges[n];snap(8,`检查 ${coord(n)}：${accept?'未接纳的弱边缘，条件成立。':input[n]==='.'?'suppressed，不能进入。':edges[n]?'已在输出中，跳过以防重复。':'不是弱边缘，跳过。'}`);
+   if(accept){edges[n]=true;parents.push([current,n]);snap(9,`接纳 ${coord(n)}：edges 写入 True；接下来加入容器。`);bag.push(n);peak=Math.max(peak,bag.length);snap(10,`将 ${coord(n)} 加入${mode==='stack'?'栈顶':'队尾'}，稍后继续从它传播。`)}
+  }neighbor=-1;snap(5,`${coord(current)} 的邻居已检查完，容器还剩 ${bag.length} 个待处理像素。`);stops.push(events.length-1);
+ }current=-1;neighbor=-1;snap(11,'容器为空：所有可达弱边缘均已找到，孤立弱边缘输出为 False。',true);stops.push(events.length-1);return {events,stops};
+}
+for(const mode of ['stack','queue']){
+ $('panels').insertAdjacentHTML('beforeend',`<section class="panel"><div class="top"><h2>${mode==='stack'?'DFS · Stack':'BFS · Queue'}</h2><span class="badge">${mode==='stack'?'后进先出 · 深入分支':'先进先出 · 逐层扩散'}</span></div><div class="status" id="${mode}-status" aria-live="polite"></div><svg class="map" id="${mode}-map" viewBox="0 0 430 310" role="img" aria-label="${mode} 二维传播图"></svg><h3>${mode==='stack'?'Stack：上方是栈顶 ↑ 进 / 出':'Queue：队首 ← 出；队尾 ← 加入'}</h3><div class="container-box" id="${mode}-box"><div class="${mode}" id="${mode}-bag"></div></div><div class="memory" id="${mode}-memory"></div><h3>配对 Python 代码 <button id="${mode}-copy">复制</button></h3><pre class="code" id="${mode}-code"></pre><h3>取出处理的顺序</h3><div class="trail" id="${mode}-trail"></div></section>`);
+ const pre=$(mode+'-code');codeFor(mode).forEach((line,i)=>{const el=document.createElement('span');el.className='line';const num=document.createElement('span');num.className='ln';num.textContent=i+1;el.append(num,document.createTextNode(line));pre.append(el)});
+ $(mode+'-copy').onclick=async()=>{try{await navigator.clipboard.writeText('import numpy as np\n\n'+codeFor(mode).join('\n'));$(mode+'-copy').textContent='已复制'}catch{$(mode+'-copy').textContent='请选中代码复制'}};
+}
+function state(mode){let r=runs[mode],idx=$('granularity').value==='pixel'?r.stops[Math.min(position,r.stops.length-1)]:Math.min(position,r.events.length-1);return r.events[idx]}
+function length(){return Math.max(...Object.values(runs).map(r=>$('granularity').value==='pixel'?r.stops.length:r.events.length))}
+function render(){
+ $('timeline').max=length()-1;$('timeline').value=position;$('progress').textContent=`${position} / ${length()-1}`;$('back').disabled=position===0;$('step').disabled=position===length()-1;
+ for(const mode of ['stack','queue']){const s=state(mode);$(mode+'-status').textContent=s.message;
+ let svg='<title>'+mode+' 传播：'+s.message+'</title>';for(let j=0;j<W;j++)svg+=`<text class="axis" x="${40+j*39}" y="13" text-anchor="middle">${j}</text>`;
+ for(let i=0;i<H;i++)svg+=`<text class="axis" x="7" y="${45+i*39}">${i}</text>`;
+ input.forEach((v,n)=>{let x=22+(n%W)*39,y=23+Math.floor(n/W)*39,fill=v==='S'?'var(--strong)':s.edges[n]?'var(--accepted)':v==='W'&&!s.done?'var(--weak)':'var(--soft)';svg+=`<rect x="${x}" y="${y}" width="36" height="36" rx="3" fill="${fill}" class="${n===s.current?'current':n===s.neighbor?'check':''}"/><text x="${x+12}" y="${y+22}" style="${v==='S'?'fill:white':''}">${$('binary').checked?(s.edges[n]?'1':'0'):v}</text>`;const k=s.order.indexOf(n);if(k>=0)svg+=`<text class="axis" x="${x+25}" y="${y+11}" style="${v==='S'?'fill:white':''}">${k+1}</text>`});
+ for(const [a,b] of s.parents){const x=n=>40+n%W*39,y=n=>41+Math.floor(n/W)*39;svg+=`<line x1="${x(a)}" y1="${y(a)}" x2="${x(b)}" y2="${y(b)}" stroke="var(--accent)" stroke-width="2" opacity=".35"/>`}
+ $(mode+'-map').innerHTML=svg;
+ $(mode+'-bag').innerHTML=s.bag.length?s.bag.map((n,i)=>`<span class="token ${i===(mode==='stack'?s.bag.length-1:0)?'next':''}">${coord(n)}${i===(mode==='stack'?s.bag.length-1:0)?' ← 下次取出':''}</span>`).join(''):'<span class="muted">空</span>';
+ if(mode==='stack')$(mode+'-box').scrollTop=0;
+ $(mode+'-memory').textContent=`待处理 ${s.bag.length} · 已取出 ${s.order.length} · 已接纳 ${s.edges.filter(Boolean).length} · 容器峰值 ${s.peak}`;
+ [...$(mode+'-code').children].forEach((el,i)=>el.classList.toggle('active',i===s.line));$(mode+'-trail').textContent=s.order.map(coord).join(' → ')||'还没有取出像素';
+ }
+ const a=state('stack'),b=state('queue');$('comparison').textContent=a.done&&b.done?`✓ 两种搜索完成，最终输出逐像素相同：保留 ${a.edges.filter(Boolean).length} 个像素，删除 ${input.filter((v,i)=>v==='W'&&!a.edges[i]).length} 个孤立弱边缘。`:'搜索进行中：两侧当前输出可能不同；容器的取出顺序决定传播顺序，不改变最终连通集合。';
+}
+function stop(){clearInterval(timer);timer=null;$('play').textContent='播放'}
+function rebuild(){stop();position=0;runs={stack:simulate('stack'),queue:simulate('queue')};$('editor').innerHTML='';input.forEach((v,n)=>{let b=document.createElement('button');b.className='pixel '+v;b.textContent=v;b.setAttribute('aria-label',coord(n)+' '+({S:'强边缘',W:'弱边缘','.':'抑制像素'}[v]));b.onclick=()=>{input[n]=v==='.'?'W':v==='W'?'S':'.';rebuild()};$('editor').append(b)});render()}
+function preset(name){input=Array(H*W).fill('.');const put=(i,j,v='W')=>input[i*W+j]=v;
+ if(name==='chain'){put(3,2,'S');[3,4,6].forEach(j=>put(3,j))}
+ else if(name==='diagonal'){put(0,0,'S');for(let i=1;i<6;i++)put(i,i);put(1,8);put(2,8)}
+ else {put(3,4,'S');[[2,3],[1,2],[0,1],[2,5],[1,6],[0,7],[4,3],[5,2],[6,1],[4,5],[5,6],[6,7],[3,5],[3,6],[3,7],[0,9],[1,9],[6,9]].forEach(([i,j])=>put(i,j));if(name==='multi')put(0,9,'S');if(name==='none')input=input.map(v=>v==='S'?'W':v)}rebuild()}
+ $('preset').onchange=()=>preset($('preset').value);$('reset').onclick=()=>{stop();position=0;render()};$('step').onclick=()=>{stop();position=Math.min(position+1,length()-1);render()};$('back').onclick=()=>{stop();position=Math.max(position-1,0);render()};$('finish').onclick=()=>{stop();position=length()-1;render()};$('timeline').oninput=()=>{stop();position=+$('timeline').value;render()};$('binary').onchange=render;$('granularity').onchange=()=>{stop();position=0;render()};
+ function play(){if(timer){stop();return}if(position===length()-1)position=0;$('play').textContent='暂停';timer=setInterval(()=>{position=Math.min(position+1,length()-1);render();if(position===length()-1)stop()},+$('speed').value)}$('play').onclick=play;$('speed').onchange=()=>{if(timer){stop();play()}};
+ preset('branch');
+</script>
+</html>

@@ -1,5 +1,17 @@
 [
   {
+    "slug": "edge-tracking-stack-queue",
+    "title": "Canny 边缘追踪：Stack 与 Queue 的传播对照",
+    "description": "逐步对照 DFS 与 BFS 的 Python 代码、栈和队列状态、二维 8 邻域传播，编辑像素观察弱边缘如何被接纳。",
+    "course": "CS302",
+    "topics": [
+      "边缘检测",
+      "图搜索"
+    ],
+    "path": "visualizations/edge-tracking-stack-queue/",
+    "created": "2026-11-11"
+  },
+  {
     "slug": "frequency-domain-map",
     "title": "从照片到频域：看见滤波器在做什么",
     "description": "联动观察处理后的照片、中心化幅度谱、频域 mask 与逆变换结果，建立空间坐标和频率坐标的对应关系。",

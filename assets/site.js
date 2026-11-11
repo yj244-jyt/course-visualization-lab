@@ -11,7 +11,9 @@
     const preview = document.createElement('div');
     preview.className = 'visual-preview';
     preview.setAttribute('aria-hidden', 'true');
-    if (item.slug === 'frequency-domain-map') {
+    if (item.slug === 'edge-tracking-stack-queue') {
+      preview.innerHTML = '<svg viewBox="0 0 400 160" width="100%" height="100%"><g fill="none" stroke="#177568" stroke-width="4"><path d="M65 35L105 70L65 105L105 140M105 70L145 35"/><path d="M285 70L245 35M285 70L325 35M285 70L245 110M285 70L325 110"/></g><g fill="#177568"><circle cx="65" cy="35" r="9"/><circle cx="285" cy="70" r="9"/></g><g fill="#eac57e"><circle cx="105" cy="70" r="8"/><circle cx="65" cy="105" r="8"/><circle cx="105" cy="140" r="8"/><circle cx="145" cy="35" r="8"/><circle cx="245" cy="35" r="8"/><circle cx="325" cy="35" r="8"/><circle cx="245" cy="110" r="8"/><circle cx="325" cy="110" r="8"/></g><g fill="currentColor" font-size="14" text-anchor="middle"><text x="100" y="20">Stack · DFS</text><text x="285" y="150">Queue · BFS</text></g></svg>';
+    } else if (item.slug === 'frequency-domain-map') {
       preview.classList.add('frequency-map-preview');
       preview.innerHTML = '<span class="frequency-map-flow"><span class="frequency-tile"><img src="visualizations/frequency-domain-map/assets/urban-street.jpg" alt=""><b>I(x,y)</b></span><span class="frequency-op">FFT</span><span class="frequency-tile frequency-spectrum"><i></i><b>|F(u,v)|</b></span><span class="frequency-op">×</span><span class="frequency-tile frequency-mask"><i></i><b>H(u,v)</b></span><span class="frequency-op">IFFT</span><span class="frequency-tile frequency-output"><img src="visualizations/frequency-domain-map/assets/urban-street.jpg" alt=""><b>g(x,y)</b></span></span>';
     } else if (item.slug === 'convolution-pixel-accumulation') {
