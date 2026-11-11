@@ -11,9 +11,29 @@
 <div class="grid"><figure><h3>A · 苹果完整原图</h3><canvas id="a" width="512" height="512" tabindex="0" aria-label="苹果图，点击取样，方向键移动取样点"></canvas><figcaption>橙色十字与其他图指向同一个空间坐标。</figcaption></figure><figure><h3>B · 橙子完整原图</h3><canvas id="b" width="512" height="512" tabindex="0" aria-label="橙子图，点击取样"></canvas><figcaption>两张图直接重叠对应坐标，不裁成两张半图后缩放。</figcaption></figure><figure><h3>M₀ · 原始 Mask</h3><canvas id="mask" width="512" height="512" tabindex="0" aria-label="原始 mask，点击取样"></canvas><figcaption>白色 1 选择 A；黑色 0 选择 B。分界来自你设计的 mask。</figcaption></figure><figure><h3>多层融合结果</h3><canvas id="result" width="512" height="512" tabindex="0" aria-label="融合结果，点击取样"></canvas><figcaption>点击任一图取样；先移动边界，再调整层数比较接缝。</figcaption></figure></div>
 <div class="panel"><h2>同一个位置，究竟用了谁？</h2><div id="probe" aria-live="polite"></div><p class="muted">1 层时 F(p) = M₀(p)A(p) + (1−M₀(p))B(p)。多层时，各频带使用不同的 Mₖ；放大重建还会汇集邻域，所以不能给最终像素指定一个通用的「原图 A 占 70%」比例。</p></div>
 <div class="panel"><h2>01 · 设计分界线，比较硬拼接</h2><div class="grid three"><figure><h3>硬拼接 · M₀A + (1−M₀)B</h3><canvas id="hard" width="512" height="512"></canvas><figcaption>只有 0 / 1 的 mask 会直接切换来源。</figcaption></figure><figure><h3>当前层数 · 金字塔融合</h3><canvas id="smooth" width="512" height="512"></canvas><figcaption>颜色和亮度在多个尺度上过渡，纹理细节仍局部选取。</figcaption></figure><div><p>每个位置使用同一坐标的 A[i,j] 和 B[i,j]。原始 mask[i,j] 为 1 就选 A，为 0 就选 B。</p><p>竖线模式按列 j 判断：j &lt; t 为 A 选区（左），j ≥ t 为 B 选区（右）。水平模式按行 i 判断：i &lt; t 为 A 选区（上），i ≥ t 为 B 选区（下）。</p><pre id="maskCode" class="code"></pre><p class="muted">这些选区描述的是原始二值 mask／硬拼接；多层融合会在选区边界附近产生过渡。算法不识别水果，也不自动选择分界线。</p></div></div></div>
-<section class="panel" id="original-mask-code"><h2>你的作业原例：中间竖线是这段代码指定的</h2><pre class="code">mask = np.zeros(A.shape[:2], dtype=float)
-mask[:, :A.shape[1]//2] = 1.0
-hard_splice = mask[...,None]*A + (1-mask[...,None])*B</pre><div class="grid two"><div><p><code>A.shape</code> 是 (H, W, 3)；<code>A.shape[:2]</code> 是 (H, W)，因此第一行创建与两张图空间位置一一对应的全零 mask。</p><p><code>A.shape[1]</code> 是宽度 W；<code>W // 2</code> 是向下取整的一半。对 512 × 512 的两张图，它等于 256；若宽度为 511，则等于 255。</p><p>第二行的第一个 <code>:</code> 表示全部行，第二个 <code>:A.shape[1]//2</code> 表示前半部分列。这条切片规则产生中间竖线，并不检查苹果或橙子的内容。</p></div><div><p class="formula">512 × 512 例子：<br>列 0–255：mask = 1 → 苹果 A<br>列 256–511：mask = 0 → 橙子 B<br>对所有行 i = 0–511 都一样</p><p>所以左上、左下都选苹果；右上、右下都选橙子。若要改成上半苹果、下半橙子，第二行改为 <code>mask[:A.shape[0]//2, :] = 1.0</code>。</p><p><code>mask[...,None]</code> 将 (H,W) 变为 (H,W,1)，让同一个选择作用于 RGB 三个通道。第三行生成硬拼接；多层融合继续使用这个 mask，并在较粗层对它平滑。</p><button id="exampleMiddle">应用原例：左半苹果 / 右半橙子</button></div></div></section>
+<section class="panel" id="original-mask-code"><h2>把创建 mask 和 pyramid_blend 连起来看</h2><p>mask 始终表示一件事：<b>每个位置更偏向 A 还是 B</b>。1 选 A，0 选 B；中间值按比例混合。在金字塔中，这个权重作用于对应尺度的图像层。</p>
+<h3>1. 先创建原始 mask</h3><pre class="code">mask = np.zeros(A.shape[:2], dtype=float)
+mask[:, :A.shape[1] // 2] = 1.0</pre><div class="grid two"><div><p><code>A.shape[:2]</code> 是 (H,W)，所以 mask 没有 RGB 通道。<code>A.shape[1] // 2</code> 取宽度的一半；第一个 <code>:</code> 选择所有行，第二个切片选择左半部分列。</p><p>512 像素宽时，列 0–255 选 A，列 256–511 选 B。左上、左下都选苹果；右上、右下都选橙子。</p></div><div><p>假设图片宽 6 个像素，每一行就是：</p><pre class="code">[1, 1, 1, 0, 0, 0]
+   A 选区 | B 选区</pre><button id="exampleMiddle">应用原例：左半苹果 / 右半橙子</button></div></div>
+<h3>2. 用原始 mask 做直接拼接</h3><pre class="code">hard_splice = (
+    mask[..., None] * A
+    + (1 - mask[..., None]) * B
+)</pre><p><code>mask[..., None]</code> 把 (H,W) 变为 (H,W,1)，使同一位置的 mask 值同时作用于 R、G、B 三个通道。</p><p class="formula">左边：1 × A + 0 × B = A<br>右边：0 × A + 1 × B = B</p><p>原始 mask 在中线从 1 突然变成 0，因此直接拼接可能出现明显的接缝。每次计算都对应两张图的同一个位置。</p>
+<h3>3. 在 pyramid_blend 中为 mask 建金字塔</h3><pre class="code">gaussian_mask = gaussian_pyramid(mask, num_levels)
+
+# gaussian_mask[0]：原始 mask，H × W
+# gaussian_mask[1]：平滑、缩小后的 mask
+# gaussian_mask[2]：再次平滑、缩小后的 mask
+# ...</pre><p><code>gaussian_mask[0]</code> 仍有清晰的左右分界。较粗层在分界附近出现 0 与 1 之间的数，例如 0.8、0.5、0.2；它们表示融合权重。每层 mask 的高宽与对应图像层一致。</p><p class="muted">这些小数是权重示例，实际值由高斯滤波与采样位置决定。下方“在同一层”视图可以查看实际 mask 和计算值。</p>
+<h3>4. 用每层 mask 融合对应的图像层</h3><pre class="code">blended_levels = []
+for k in range(num_levels):
+    mask_level = gaussian_mask[k][..., None]
+    blended_level = (
+        mask_level * laplacian_a[k]
+        + (1 - mask_level) * laplacian_b[k]
+    )
+    blended_levels.append(blended_level)</pre><p><code>laplacian_a[k]</code> 和 <code>laplacian_b[k]</code> 是同一尺度的 RGB 数组。<code>[..., None]</code> 再次把该层二维 mask 扩展为可广播到三个通道的形状。</p><p class="formula">某位置 Mₖ = 0.8 时：<br>Cₖ = 0.8 × A 的这一层 + 0.2 × B 的这一层</p><p>前面的层保存带正负号的图像细节，最后一层保存最粗的高斯图。融合发生在这些对应层上；细层与粗层使用不同程度平滑的 mask，这正是多尺度融合的关键。</p>
+<h3>5. 重建最终图片</h3><pre class="code">blended_image = reconstruct_pyramid(blended_levels)</pre><p>重建函数从最粗层开始，逐层放大并加回融合后的细节，得到一张完整的 RGB 图片。</p><p class="formula">原始左右 mask<br>↓ 生成不同尺度的 mask<br>每层 mask 融合对应尺度的 A、B<br>↓ 从粗到细重建<br>最终融合图像</p><p><code>num_levels = 1</code> 时，唯一图像层就是原图，唯一 mask 层就是原始 mask，因此结果与 <code>hard_splice</code> 一致。增加层数后，较粗尺度的 mask 在中线附近逐渐过渡，融合结果通常就与硬拼接不同。</p><p class="muted">权重 0.8 指某一层在某个位置的比例，并不意味着最终像素一定等于原图该位置的 0.8A + 0.2B；不同层的权重和重建中的邻域插值都会参与结果。</p></section>
 <section class="panel" id="mask-coordinate-guide"><h2>01a · 上下、左右到底由哪一个下标决定？</h2><div class="grid two"><div><pre class="code">左上角 (i=0, j=0)
         列 j 增加 → 向右
 行 i  ↓
